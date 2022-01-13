@@ -38,6 +38,7 @@ With recent changes, now you can use **slash commands** for more intuitive way o
 - [Discord.py](https://github.com/Rapptz/discord.py) - A modern, easy to use, feature-rich, and async ready API wrapper for Discord written in Python.
 - [TinyDB](https://tinydb.readthedocs.io/en/latest/) - Tiny, document oriented database.
 - [RiotWatcher](https://riot-watcher.readthedocs.io/en/latest/) - RiotWatcher is a thin wrapper on top of the Riot Games API for League of Legends.
+- [Heroku](https://dashboard.heroku.com/apps) - A platform as a service (PaaS) that enables developers to build, run, and operate applications entirely in the cloud.
 
 ## Code example
 
