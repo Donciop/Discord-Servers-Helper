@@ -130,4 +130,4 @@ async def on_command_error(ctx, error):
         return
 
 reminder.start()  # start tasks
-client.run(os.getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(os.getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN
