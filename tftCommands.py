@@ -81,11 +81,11 @@ class TftCommands(commands.Cog):
     @cog_ext.cog_slash(  # slash command decorator
         name="tft_rank",  # name that will be displayed in Discord
         description="Check a specific player's Teamfight Tactics rank",  # description of the command
-        guild_ids=[218510314835148802],  # list of server id's that have access to this slash command
+        guild_ids=[218510314835148802],  # list of server (guilds) id's that have access to this slash command
         options=[
             create_option(  # parameters in slash command
-                name="nickname",
-                description="Type in player's nickname",
+                name="nickname",  # name of the variable
+                description="Type in player's nickname",  # description of the parameter
                 option_type=3,  # option_type refers to type of the variable ( 3 - STRING )
                 required=True  # this parameter is required
             )
@@ -105,19 +105,22 @@ class TftCommands(commands.Cog):
         if not summoner:  # check if the player actually exists
             await ctx.send(f"Can't find **{nickname}** on EUNE server.")
             return  # return if player's not found
-        summoner_tft_stats = self.watcher.league.by_summoner(self.region, summoner['id'])
+        summoner_tft_stats = self.watcher.league.by_summoner(self.region, summoner['id'])  # acces data about player's rank
         if not summoner_tft_stats:  # check if player has rank on Teamfight Tactics
             await ctx.send(f"Player **{nickname}** is unranked on TFT")
             return  # return if player's unranked
         title_nickname = nickname.lower()  # nickname operations for accessing the lolchess.gg website
         title_nickname = title_nickname.replace(" ", "")
         embed = discord.Embed(  # styling Discord embed message
-          color=0x11f80d,
-          title=f"🎲 Teamfight Tactics {nickname}'s Rank 🎲",
-          description="Click the title for advanced information",
+          color=0x11f80d,  # color of the embed message
+          title=f"🎲 Teamfight Tactics {nickname}'s Rank 🎲",  # title of the embed message
+          description="Click the title for advanced information",  # description of the embed message
           url=f"https://lolchess.gg/profile/eune/{title_nickname}"  # URL that leads to player's account on lolchess.gg for further analysis if needed
         )
-        file = discord.File(self.penguFilepath, filename="image.png")  # creating file to send image along the embed message
+        file = discord.File(  # creating file to send image along the embed message
+            self.penguFilepath,  # file path to image
+            filename="image.png"  # name of the file
+        )
         embed.set_thumbnail(url="attachment://image.png")  # setting emebed's thumbnail
         tier_emoji, rank = await self.rank_check(summoner_tft_stats)  # get player's rank and rating for leaderboard
         q_type = 0
