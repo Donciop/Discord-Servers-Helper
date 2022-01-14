@@ -1,6 +1,3 @@
-"""
-Main file that is used to run the bot. Also contains all the cogs.
-"""
 import discord  # main packages
 from discord.ext import commands, tasks
 from discord_slash import SlashCommand  # for slash commands
