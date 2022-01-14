@@ -156,7 +156,7 @@ class LolCommands(commands.Cog):
             participant['championId'] = champ_dict[str(participant['championId'])]  # assign champion's name based on their ID using dictionary that we made
             summoner_in_game = self.watcher.summoner.by_name(self.region, participant['summonerName'])
             summoner_rank = self.watcher.league.by_summoner(self.region, summoner_in_game['id'])
-            if summoner_rank:  #  check if player has rank in League of Legends
+            if summoner_rank:  # check if player has rank in League of Legends
                 if live_game['gameQueueConfigId'] == 440:  # check queue type of the live game to determine what rank to show
                     q_type = "RANKED_FLEX_SR"
                 else:
