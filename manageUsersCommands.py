@@ -8,7 +8,7 @@ class ManageUsersCommands(commands.Cog):
         self.client = client
 
     @cog_ext.cog_slash(  # slash command decorator
-        name="unban",  # name that will be displayed in Discord
+        name="dc_unban",  # name that will be displayed in Discord
         description="Unban specific member from this discord server",  # description of the command
         guild_ids=[218510314835148802],  # list of server (guilds) id's that have access to this slash command
         options=[
