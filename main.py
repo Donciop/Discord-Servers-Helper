@@ -11,7 +11,7 @@ intents.members = True
 
 # Initialize bot
 
-client = commands.Bot(command_prefix='&', intents=intents, help_command=None)
+client = commands.Bot(command_prefix='*', intents=intents, help_command=None)
 slash = SlashCommand(client, sync_commands=True)
 
 # Loading cogs
@@ -127,4 +127,4 @@ async def on_command_error(ctx, error):
         return
 
 reminder.start()  # start tasks
-client.run(os.getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(os.getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
