@@ -39,9 +39,6 @@ class ManageMessagesCommands(commands.Cog):
         :param ctx: passing context of the command
         :param channel: discord's channel
         """
-        if not ctx.author.guild_permissions.manage_messages:  # check if author of the command has right permissions
-            await ctx.send("You don't have permission to unban members")
-            return  # return if author's missing permission
         await ctx.defer()
         count = 0
         async for msg in channel.history(limit=None):  # iterate over every message in channel's history

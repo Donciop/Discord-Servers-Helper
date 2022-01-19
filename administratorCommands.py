@@ -48,7 +48,7 @@ class AdministratorCommands(commands.Cog):
         )
         embed = discord.Embed(
           color=0x11f80d,
-          description='Leaderboard of the most active users in this channel',
+          description=f'Leaderboard of the most active users in {channel.mention}',
           title="🏆 Leaderboard 🏆"
         )
         embed.set_thumbnail(url="attachment://image.png")
