@@ -241,7 +241,10 @@ class TftCommands(commands.Cog):
         await ctx.defer()  # deffering a command due to long computing time and timeouts from slash commands
         for record in self.db:  # iterate over every record in database to access player's information
             q_type = 0
-            summoner = self.watcher.summoner.by_name(self.region, record['nickname'])
+            try:
+                summoner = self.watcher.summoner.by_name(self.region, record['nickname'])
+            except:
+                continue
             summoner_tft_stats = self.watcher.league.by_summoner(self.region, summoner['id'])
             if summoner_tft_stats[0]['queueType'] == 'RANKED_TFT_TURBO':
                 q_type = 1

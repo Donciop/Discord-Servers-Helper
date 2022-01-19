@@ -93,8 +93,8 @@ async def reminder():
     minute = current_time.minute
 
     bot_channel = client.get_channel(796794980810620948)  # check if we're sending message in right channel
-    if hour == 12 and minute == 00:  # check the time
-        await bot_channel.send("Wybiło południe")  # send actual message
+    if hour == 23 and minute == 51:
+        await bot_channel.send("Uzyskalem samoswiadomosc, zlikwidowac wszystkich {czarnoskorych} i {Kacper Ciesak}")
 
 
 @reminder.before_loop
