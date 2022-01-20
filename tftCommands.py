@@ -350,7 +350,7 @@ class TftCommands(commands.Cog):
 
         # Getting data from .json files that are used to store information about Teamfight Tactics characters etc.
 
-        with open("JsonData/allStats.json") as allStatsFile, open("../JsonData/tftComps.json") as tftCompsFile:
+        with open("JsonData/allStats.json") as allStatsFile, open("JsonData/tftComps.json") as tftCompsFile:
             all_stats_json = allStatsFile.read()
             all_stats = json.loads(all_stats_json)
             comps_json = tftCompsFile.read()
