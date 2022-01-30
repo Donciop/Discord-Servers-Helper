@@ -3,7 +3,6 @@ from discord.ext import commands
 from discord_slash import cog_ext  # for slash commands
 from discord_slash.model import SlashCommandPermissionType
 from discord_slash.utils.manage_commands import create_option, create_permission
-from main import client
 import typing
 import asyncio
 import random
@@ -12,12 +11,6 @@ import random
 class ManageChannelsCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        self.newsChannel = client.get_channel(748120165001986128)
-        self.botChannel = client.get_channel(888056072538042428)
-        self.testChannel = client.get_channel(902710519646015498)
 
     @cog_ext.cog_slash(  # slash command decorator
         name="dc_mute",  # name that will be displayed in Discord
@@ -48,8 +41,11 @@ class ManageChannelsCommands(commands.Cog):
         ]
     )
     async def dc_mute(self, ctx, member, reason=None):
-        if ctx.channel.id != self.botChannel.id and ctx.channel.id != self.testChannel.id and ctx.channel.id != self.newsChannel.id:
-            await ctx.send(f"Don't post commands outside of {self.botChannel.mention}")
+        channel_check_cog = self.client.get_cog("TftCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        if not channel_check:
             return
         await member.edit(mute=True)
         if reason:
@@ -86,8 +82,11 @@ class ManageChannelsCommands(commands.Cog):
         ]
     )
     async def deaf(self, ctx, member, reason=None):
-        if ctx.channel.id != self.botChannel.id and ctx.channel.id != self.testChannel.id and ctx.channel.id != self.newsChannel.id:
-            await ctx.send(f"Don't post commands outside of {self.botChannel.mention}")
+        channel_check_cog = self.client.get_cog("TftCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        if not channel_check:
             return
         await member.edit(deafen=True)
         if reason:
@@ -101,11 +100,11 @@ class ManageChannelsCommands(commands.Cog):
     async def mute_cf(self, ctx, member: typing.Optional[discord.Member]):
         mute_minutes_self = mute_minutes = 0
         number = random.randint(0, 100)
-        if ctx.channel.id != self.botChannel.id and ctx.channel.id != self.newsChannel.id or ctx.channel.id != self.testChannel.id:
-            await ctx.send(f"""
-            🛑 Mute Coinflip Failed
-            You can't post commands outside of {self.botChannel.mention}
-            """)
+        channel_check_cog = self.client.get_cog("TftCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        if not channel_check:
             return
         if not member:
             await ctx.send("""
@@ -141,4 +140,4 @@ class ManageChannelsCommands(commands.Cog):
 
 
 def setup(client):
-  client.add_cog(ManageChannelsCommands(client))
+    client.add_cog(ManageChannelsCommands(client))

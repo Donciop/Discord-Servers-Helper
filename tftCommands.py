@@ -17,13 +17,11 @@ class TftCommands(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         """ Event handler. That event is called when bot becomes online. Used mainly to initialize variables. """
-        self.leagueChannel = client.get_channel(910557144573673522)  # for channel check, to make sure commands are used in right channel
         self.penguFilepath = "Media/Pengu_TFT.png"  # filepaths for files send with Discord embeds
         self.tftIconFilepath = "Media/Teamfight_Tactics_icon.png"
         self.tftEmoji = "<:TFT:912917249923375114>"  # reference to custom Discord emoji
         self.region = 'eun1'  # used in Riotwatcher to determine which region we're looking for
         self.watcher = TftWatcher(os.getenv('APIKEYTFT'))  # RIOT API KEY
-        self.purgeSeconds = 5
 
     @commands.command()
     async def rank_check(self, summoner_rank):
@@ -58,23 +56,31 @@ class TftCommands(commands.Cog):
         return tier_emoji, rank
 
     @commands.command()
-    async def channel_check(self, channel):
+    async def channel_check(self, ctx, channel_id):
         """
         Function used to check if we're sending commands in right channel.
 
-        :param channel: discord channel where message was sent
+        :param ctx: context of the command
+        :param channel_id: discord channel where message was sent
         :return channel_check: boolean, means we're in right channel if True
         """
-        bot_channel = client.get_channel(888056072538042428)  # variables that store channels where we can send commands
-        test_channel = client.get_channel(902710519646015498)
-        if channel != bot_channel.id and channel != test_channel.id and channel != self.leagueChannel.id:  # check if we're sending command in right channel
-            channel_check = False  # False if we're in wrong channel
-            our_channel = client.get_channel(channel)
-            await our_channel.send(f"Please, use bot commands in {self.leagueChannel.mention} channel to prevent spam")  # sends specific message when we're in wrong command
-            await asyncio.sleep(self.purgeSeconds)  # waits specific amount of time
-            await our_channel.purge(limit=2)  # deletes message after specific amount of time
+        with open("JsonData/guild_bot_channel.json") as guild_bot_channels_file:
+            guild_bot_channels = guild_bot_channels_file.read()
+            guild_bot_channels_dict = json.loads(guild_bot_channels)
+            guild_bot_channels_file.close()
+        channel_check = False
+        if guild_bot_channels_dict[str(ctx.guild.id)]:
+            for bot_channel in guild_bot_channels_dict[str(ctx.guild.id)]:
+                if channel_id == int(bot_channel):
+                    channel_check = True
         else:
-            channel_check = True  # True if we're in right channel
+            channel_check = True
+        # sends specific message when we're in wrong command
+        if not channel_check:
+            our_channel = client.get_channel(channel_id)
+            await our_channel.send(f"Please, use bot commands in bot channel to prevent spam")
+            await asyncio.sleep(3)
+            await ctx.channel.purge(limit=1)
         return channel_check
 
     @cog_ext.cog_slash(  # slash command decorator
@@ -97,7 +103,7 @@ class TftCommands(commands.Cog):
         :param ctx: passing context of the command
         :param nickname: nickname of the player we want to find
         """
-        channel_check = await self.channel_check(ctx.channel.id)  # check if we're sending command in right channel
+        channel_check = await self.channel_check(ctx, ctx.channel.id)  # check if we're sending command in right channel
         if not channel_check:
             return
         summoner = self.watcher.summoner.by_name(self.region, nickname)  # access data about specific player from RIOT API
@@ -154,7 +160,7 @@ class TftCommands(commands.Cog):
         :param nickname: nickname of the player we want to add
         """
         db = TinyDB('JsonData/db.json')
-        channel_check = await self.channel_check(ctx.channel.id)
+        channel_check = await self.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
         summoner = self.watcher.summoner.by_name(self.region, nickname)
@@ -205,7 +211,7 @@ class TftCommands(commands.Cog):
         :param nickname: nickname of the player we want to add
         """
         db = TinyDB('JsonData/db.json')
-        channel_check = await self.channel_check(ctx.channel.id)
+        channel_check = await self.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
         if not ctx.author.guild_permissions.manage_messages:
@@ -229,9 +235,7 @@ class TftCommands(commands.Cog):
         :param ctx: passing context of the command
         """
         db = TinyDB('JsonData/db.json')
-        channel_check = await self.channel_check(ctx.channel.id)
-        if not channel_check:
-            return
+        await self.channel_check(ctx, ctx.channel.id)
         embed = discord.Embed(
           color=0x11f80d,
           title="🏆 Teamfight Tactics Leaderboard 🏆",
@@ -311,10 +315,11 @@ class TftCommands(commands.Cog):
         ]
     )
     async def tft_stats(self, ctx, nickname: str, number_of_matches: int):
-        channel_check = await self.channel_check(ctx.channel.id)
+        channel_check = await self.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
-        if number_of_matches >= 500 or number_of_matches <= 0:  # due to API limitations, we can't collecta data from more than 500 matches
+        # due to API limitations, we can't collect data from more than 500 matches
+        if number_of_matches >= 500 or number_of_matches <= 0:
             await ctx.send(f"Wrong number of matches! Try between 0 - 500")
             return  # return if wrong number of matches was specified
         summoner = self.watcher.summoner.by_name(self.region, nickname)

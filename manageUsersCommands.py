@@ -1,6 +1,7 @@
 from discord.ext import commands  # main packages
 from discord_slash import cog_ext  # for slash commands
-from discord_slash.utils.manage_commands import create_option
+from discord_slash.model import SlashCommandPermissionType
+from discord_slash.utils.manage_commands import create_option, create_permission
 
 
 class ManageUsersCommands(commands.Cog):
@@ -11,6 +12,15 @@ class ManageUsersCommands(commands.Cog):
         name="dc_unban",  # name that will be displayed in Discord
         description="Unban specific member from this discord server",  # description of the command
         guild_ids=[218510314835148802],  # list of server (guilds) id's that have access to this slash command
+        permissions={
+            218510314835148802: [
+                create_permission(545658751689031699, SlashCommandPermissionType.ROLE, True),
+                create_permission(748144455730593792, SlashCommandPermissionType.ROLE, True),
+                create_permission(826094492309258291, SlashCommandPermissionType.ROLE, True),
+                create_permission(541960938165764096, SlashCommandPermissionType.ROLE, False),
+                create_permission(541961631954108435, SlashCommandPermissionType.ROLE, False)
+            ]
+        },
         options=[
             create_option(  # parameters in slash command
                 name="nickname",  # name of the variable
@@ -34,9 +44,12 @@ class ManageUsersCommands(commands.Cog):
         :param nickname: Discord's nickname
         :param discriminator: Discord's discriminator (for ex. #1234)
         """
-        if not ctx.author.guild_permissions.ban_members:  # check if author of the command has right permissions
-            await ctx.send("You don't have permission to unban members")
-            return  # return if author's missing permission
+        channel_check_cog = self.client.get_cog("TftCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        if not channel_check:
+            return
         banned_users = await ctx.guild.bans()  # access banned users of that discord server
         not_found = 0
         for ban_entry in banned_users:  # iterate over every ban entry in discord logs

@@ -26,91 +26,83 @@ class EverybodyCommands(commands.Cog):
         guild_ids=[218510314835148802]
     )
     async def help(self, ctx):
-        if ctx.channel.id == self.botChannel.id or\
-            ctx.channel.id == self.newsChannel.id or \
-                ctx.channel.id == self.testChannel.id:
-            embed = discord.Embed(
-                color=0x11f80d,
-                title="📜 COMMANDS"
-            )
-            embed.add_field(
-                name="**Use `*` before every command**",
-                value=f"Most of the commands have to be used in -> {self.botChannel.mention}",
-                inline=False
-            )
-            embed.add_field(
-                name="📜 EVERYBODY",
-                value="""
-                      **★ `msgCountMember [Optional(@user)]`**
-                      Count all messages from specific user in channel where this command is sent.
-                      If user isn't specified, it will count messages of person who send the command
-                      **★ `poke [@user]`**
-                      Moves user between voice channels to poke him.
-                      **★ `online [@role]`**
-                      Shows online users with this role
-                      **★ `keyword [word: str]`**
-                      Look for a specific word or words in last 1k messages and get jump URLs to them.
-                      Keyword has to be longer than 5 letters.
-                      **★ `bans`**
-                      Show banned users on this server
-                      """,
-                inline=False
-            )
-            embed.add_field(
-                name="📜 MANAGE CHANNELS",
-                value="""
-                    **★ `mute [@user] [Optional(time: min)] [Optional(reason: str)]`**
-                    Mute user for certain amount of time (permanently if no time specified). You can provide a reason or leave it blank.
-                    **★ `deaf [@user] [Optional(time: min)] [Optional(reason: str)]`**
-                    Deafen user for certain amount of time (permanently if no time specified). You can provide a reason or leave it blank.
-                    **★ `mute_cf [@user]`**
-                    50% chance to mute user for 1 minute, but 50% chance to mute yourself for 3 minutes instead.
-                    """,
-                inline=False
-            )
-            embed.add_field(
-                name="📜 MANAGE MESSAGES",
-                value="""
-                    **★ `clear [amount: int]`**
-                    Delete specified amount of messages from channel
-                    **★ `msgCount [Optional(#channel)]`**
-                    Count messages in specific channel or in current channel if not specified.
-                    """,
-                inline=False
-            )
-            embed.add_field(
-                name="📜 MANAGE USERS",
-                value="""
-                      **★ `unban [@user]`**
-                      Unban specific user
-                      """,
-                inline=False
-            )
-            embed.add_field(
-                name="📜 ADMINISTRATOR",
-                value="""
-                      **★ `top`**
-                      Shows leaderboard of messages in specific channel, only available for administrator because of long computing time
-                      """,
-                inline=False
-            )
-            embed.add_field(
-                name="📜 ROLES",
-                value=f"Get yourself a role or remove it here -> {self.newsChannel.mention}",
-                inline=False
-            )
-            embed.set_footer(text=f"Copyrighted by {self.owner.name} #{self.owner.discriminator}")
-        else:
-            embed = discord.Embed(color=0xeb1414)
-            embed.set_author(
-              name=ctx.author.display_name,
-              icon_url=ctx.author.avatar_url
-            )
-            embed.add_field(
-              name="🛑 Help Failed",
-              value=f"You can't post commands outside of {self.botChannel.mention}",
-              inline=False
-            )
+        channel_check_cog = self.client.get_cog("TftCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        if not channel_check:
+            return
+        embed = discord.Embed(
+            color=0x11f80d,
+            title="📜 COMMANDS"
+        )
+        embed.add_field(
+            name="**Use `*` before every command**",
+            value=f"Most of the commands have to be used in -> {self.botChannel.mention}",
+            inline=False
+        )
+        embed.add_field(
+            name="📜 EVERYBODY",
+            value="""
+                  **★ `msgCountMember [Optional(@user)]`**
+                  Count all messages from specific user in channel where this command is sent.
+                  If user isn't specified, it will count messages of person who send the command
+                  **★ `poke [@user]`**
+                  Moves user between voice channels to poke him.
+                  **★ `online [@role]`**
+                  Shows online users with this role
+                  **★ `keyword [word: str]`**
+                  Look for a specific word or words in last 1k messages and get jump URLs to them.
+                  Keyword has to be longer than 5 letters.
+                  **★ `bans`**
+                  Show banned users on this server
+                  """,
+            inline=False
+        )
+        embed.add_field(
+            name="📜 MANAGE CHANNELS",
+            value="""
+                **★ `mute [@user] [Optional(time: min)] [Optional(reason: str)]`**
+                Mute user for certain amount of time (permanently if no time specified). You can provide a reason or leave it blank.
+                **★ `deaf [@user] [Optional(time: min)] [Optional(reason: str)]`**
+                Deafen user for certain amount of time (permanently if no time specified). You can provide a reason or leave it blank.
+                **★ `mute_cf [@user]`**
+                50% chance to mute user for 1 minute, but 50% chance to mute yourself for 3 minutes instead.
+                """,
+            inline=False
+        )
+        embed.add_field(
+            name="📜 MANAGE MESSAGES",
+            value="""
+                **★ `clear [amount: int]`**
+                Delete specified amount of messages from channel
+                **★ `msgCount [Optional(#channel)]`**
+                Count messages in specific channel or in current channel if not specified.
+                """,
+            inline=False
+        )
+        embed.add_field(
+            name="📜 MANAGE USERS",
+            value="""
+                  **★ `unban [@user]`**
+                  Unban specific user
+                  """,
+            inline=False
+        )
+        embed.add_field(
+            name="📜 ADMINISTRATOR",
+            value="""
+                  **★ `top`**
+                  Shows leaderboard of messages in specific channel, only available for administrator because of long computing time
+                  """,
+            inline=False
+        )
+        embed.add_field(
+            name="📜 ROLES",
+            value=f"Get yourself a role or remove it here -> {self.newsChannel.mention}",
+            inline=False
+        )
+        embed.set_footer(text=f"Copyrighted by {self.owner.name} #{self.owner.discriminator}")
         await ctx.send(embed=embed)
 
     @cog_ext.cog_slash(
@@ -174,6 +166,12 @@ class EverybodyCommands(commands.Cog):
         ]
     )
     async def poke(self, ctx, member):
+        channel_check_cog = self.client.get_cog("TftCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        if not channel_check:
+            return
         await ctx.defer()
         embed = discord.Embed(color=0x11f80d)
         embed.set_author(
@@ -234,6 +232,12 @@ class EverybodyCommands(commands.Cog):
       guild_ids=[218510314835148802]
     )
     async def bans(self, ctx):
+        channel_check_cog = self.client.get_cog("TftCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        if not channel_check:
+            return
         banned_users = await self.guild.bans()
         embed = discord.Embed(
           color=0xeb1414,
