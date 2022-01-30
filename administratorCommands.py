@@ -83,4 +83,4 @@ class AdministratorCommands(commands.Cog):
 
 
 def setup(client):
-  client.add_cog(AdministratorCommands(client))
+    client.add_cog(AdministratorCommands(client))

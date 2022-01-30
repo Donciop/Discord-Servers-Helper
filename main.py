@@ -31,7 +31,7 @@ client.load_extension("tftCommands")
 async def on_ready():
     """ Event handler that is called when bot is turned on. """
     print("Bot is ready")
-    await client.change_presence(   # change the bot's description on Discord member list
+    await client.change_presence(   # change the bot description on Discord member list
       activity=discord.Activity(
         type=discord.ActivityType.watching,  # get the "is watching ..." format
         name="small servers *help"
@@ -46,7 +46,9 @@ async def on_raw_reaction_add(payload):
     """ Event handler for handling reactions to messages. Here's used to assign roles based on reaction. """
     guild = await client.fetch_guild(payload.guild_id)  # get information about member and member's server
     member = await guild.fetch_member(payload.user_id)
-    if payload.channel_id == 748120165001986128 and payload.message_id == 884555735671918642:   # check if we react to desired message
+    role = None
+    # check if we react to desired message
+    if payload.channel_id == 748120165001986128 and payload.message_id == 884555735671918642:
         if str(payload.emoji) == "❌":   # switch-case for every emote / every role.
             role = guild.get_role(877347765519253544)
         if str(payload.emoji) == "1️⃣":
@@ -67,6 +69,7 @@ async def on_raw_reaction_remove(payload):
     """ Event handler for handling reactions to messages. Here's used to remove unwanted roles. """
     guild = await client.fetch_guild(payload.guild_id)
     member = await guild.fetch_member(payload.user_id)
+    role = None
     if payload.channel_id == 748120165001986128 and payload.message_id == 884555735671918642:
         if str(payload.emoji) == "❌":
             role = guild.get_role(877347765519253544)
@@ -94,7 +97,7 @@ async def reminder():
 
     bot_channel = client.get_channel(796794980810620948)  # check if we're sending message in right channel
     if hour == 11 and minute == 00:
-        await bot_channel.send("Wybilo poludnie")
+        await bot_channel.send("It's high noon!")
 
 
 @reminder.before_loop
