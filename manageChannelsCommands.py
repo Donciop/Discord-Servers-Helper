@@ -18,8 +18,6 @@ class ManageChannelsCommands(commands.Cog):
         self.newsChannel = client.get_channel(748120165001986128)
         self.botChannel = client.get_channel(888056072538042428)
         self.testChannel = client.get_channel(902710519646015498)
-        self.owner = client.get_user(198436287848382464)
-        self.guild = client.get_guild(218510314835148802)
 
     @cog_ext.cog_slash(  # slash command decorator
         name="dc_mute",  # name that will be displayed in Discord
@@ -101,57 +99,39 @@ class ManageChannelsCommands(commands.Cog):
     @commands.has_permissions(mute_members=True)
     @commands.cooldown(1, 2, commands.BucketType.user)
     async def mute_cf(self, ctx, member: typing.Optional[discord.Member]):
-        print("Done")
         mute_minutes_self = mute_minutes = 0
         number = random.randint(0, 100)
-        embed = discord.Embed(color=0xeb1414)
-        embed.set_author(
-            name=ctx.author.display_name,
-            icon_url=ctx.author.avatar_url
-        )
-        if member:
-            if ctx.channel.id == self.botChannel.id or ctx.channel.id == self.newsChannel.id or ctx.channel.id == self.testChannel.id:
-                if ctx.message.author != member:
-                    if number >= 50:
-                        embed = discord.Embed(color=0x11f80d)
-                        embed.set_author(
-                            name=ctx.author.display_name,
-                            icon_url=ctx.author.avatar_url
-                        )
-                        await member.edit(mute=True)
-                        embed.add_field(
-                            name="✅ Mute Coinflip Successful",
-                            value=f"You've rolled {str(number)} and muted {member.display_name} for 1 minute",
-                            inline=False
-                        )
-                        mute_minutes += 1
-                    else:
-                        await ctx.author.edit(mute=True)
-                        embed.add_field(
-                            name="🛑 Mute Coinflip Failed",
-                            value=f"You've rolled {str(number)} and failed to mute {member.display_name}, however you got muted for 3 minutes",
-                            inline=False
-                        )
-                        mute_minutes_self += 3
-                else:
-                    embed.add_field(
-                        name="🛑 Mute Coinflip Failed",
-                        value="You can't coinflip with yourself",
-                        inline=False
-                    )
-            else:
-                embed.add_field(
-                    name="🛑 Mute Coinflip Failed",
-                    value=f"You can't post commands outside of {self.botChannel.mention}",
-                    inline=False
-                )
+        if ctx.channel.id != self.botChannel.id and ctx.channel.id != self.newsChannel.id or ctx.channel.id != self.testChannel.id:
+            await ctx.send(f"""
+            🛑 Mute Coinflip Failed
+            You can't post commands outside of {self.botChannel.mention}
+            """)
+            return
+        if not member:
+            await ctx.send("""
+            🛑 Mute Coinflip Failed
+            You have to specify a Discord member to mute
+            """)
+            return
+        if ctx.message.author == member:
+            await ctx.send("""
+            🛑 Mute Coinflip Failed
+            You can't coinflip with yourself
+            """)
+        if number >= 50:
+            await member.edit(mute=True)
+            await ctx.send(f"""
+            ✅ Mute Coinflip Successful
+            You've rolled {str(number)} and muted {member.display_name} for 1 minute
+            """)
+            mute_minutes += 1
         else:
-            embed.add_field(
-                name="🛑 Mute Coinflip Failed",
-                value="You have to specify a Discord member to mute",
-                inline=False
-            )
-        await ctx.send(embed=embed)
+            await ctx.author.edit(mute=True)
+            await ctx.send(f"""
+            🛑 Mute Coinflip Failed
+            You've rolled {str(number)} and failed to mute {member.display_name}, however you got muted for 3 minutes
+            """)
+            mute_minutes_self += 3
         if mute_minutes_self > 0:
             await asyncio.sleep(mute_minutes_self * 60)
             await ctx.author.edit(mute=False)

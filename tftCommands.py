@@ -24,7 +24,6 @@ class TftCommands(commands.Cog):
         self.region = 'eun1'  # used in Riotwatcher to determine which region we're looking for
         self.watcher = TftWatcher(os.getenv('APIKEYTFT'))  # RIOT API KEY
         self.purgeSeconds = 5
-        self.db = TinyDB('JsonData/db.json')  # initialize TinyDB database
 
     @commands.command()
     async def rank_check(self, summoner_rank):
@@ -154,6 +153,7 @@ class TftCommands(commands.Cog):
         :param ctx: passing context of the command
         :param nickname: nickname of the player we want to add
         """
+        db = TinyDB('JsonData/db.json')
         channel_check = await self.channel_check(ctx.channel.id)
         if not channel_check:
             return
@@ -168,13 +168,13 @@ class TftCommands(commands.Cog):
         q_type = 0
         if summoner_tft_stats[0]['queueType'] == 'RANKED_TFT_TURBO':
             q_type = 1
-        if self.db.search(Query().nickname == nickname):  # searching database to check if player's already exists
+        if db.search(Query().nickname == nickname):  # searching database to check if player's already exists
             await ctx.send(f"Player **{nickname}** already exists in database")
             return  # return if player's already in the database
         else:
             tier_emoji, ranking = await self.rank_check(summoner_tft_stats)
-            self.db.insert({'nickname': nickname, })  # sql insert player into database
-            self.db.update_multiple([  # after inserting we update his statistic, including rank, tier, league points etc.
+            db.insert({'nickname': nickname, })  # sql insert player into database
+            db.update_multiple([  # after inserting we update his statistic, including rank, tier, league points etc.
               ({'matchesPlayed': (summoner_tft_stats[q_type]['wins']+summoner_tft_stats[q_type]['losses'])}, Query().nickname == nickname),
               ({'rank': summoner_tft_stats[q_type]['rank']}, Query().nickname == nickname),
               ({'tier': summoner_tft_stats[q_type]['tier']}, Query().nickname == nickname),
@@ -204,14 +204,15 @@ class TftCommands(commands.Cog):
         :param ctx: passing context of the command
         :param nickname: nickname of the player we want to add
         """
+        db = TinyDB('JsonData/db.json')
         channel_check = await self.channel_check(ctx.channel.id)
         if not channel_check:
             return
         if not ctx.author.guild_permissions.manage_messages:
             await ctx.send("You don't have permission to delete users from database, ask administrators or moderators")
             return
-        if self.db.search(Query().nickname == nickname):
-            self.db.remove(Query().nickname == nickname)  # removing player from database
+        if db.search(Query().nickname == nickname):
+            db.remove(Query().nickname == nickname)  # removing player from database
             await ctx.send(f"You have deleted **{nickname}** from database")
         else:
             await ctx.send(f"Can't find **{nickname}** in database")
@@ -227,6 +228,7 @@ class TftCommands(commands.Cog):
 
         :param ctx: passing context of the command
         """
+        db = TinyDB('JsonData/db.json')
         channel_check = await self.channel_check(ctx.channel.id)
         if not channel_check:
             return
@@ -239,7 +241,7 @@ class TftCommands(commands.Cog):
         embed.set_thumbnail(url="attachment://image.png")
         leaderboard_not_sorted = {}  # empty dictionary for collecting required data
         await ctx.defer()  # deffering a command due to long computing time and timeouts from slash commands
-        for record in self.db:  # iterate over every record in database to access player's information
+        for record in db:  # iterate over every record in database to access player's information
             q_type = 0
             try:
                 summoner = self.watcher.summoner.by_name(self.region, record['nickname'])
@@ -249,13 +251,13 @@ class TftCommands(commands.Cog):
             if summoner_tft_stats[0]['queueType'] == 'RANKED_TFT_TURBO':
                 q_type = 1
             tier_emoji, ranking = await self.rank_check(summoner_tft_stats)
-            self.db.update_multiple([  # update database from RIOT API information to get up to date statistics
-              ({'matchesPlayed': (summoner_tft_stats[q_type]['wins']+summoner_tft_stats[q_type]['losses'])}, Query().nickname == record['nickname']),
-              ({'rank': summoner_tft_stats[q_type]['rank']}, Query().nickname == record['nickname']),
-              ({'tier': summoner_tft_stats[q_type]['tier']}, Query().nickname == record['nickname']),
-              ({'leaguePoints': summoner_tft_stats[q_type]['leaguePoints']}, Query().nickname == record['nickname']),
-              ({'tierEmoji': tier_emoji}, Query().nickname == record['nickname']),
-              ({'wins': summoner_tft_stats[q_type]['wins']}, Query().nickname == record['nickname'])
+            db.update_multiple([  # update database from RIOT API information to get up to date statistics
+              ({'matchesPlayed': (summoner_tft_stats[q_type]['wins']+summoner_tft_stats[q_type]['losses'])}, Query().nickname == str(record['nickname'])),
+              ({'rank': summoner_tft_stats[q_type]['rank']}, Query().nickname == str(record['nickname'])),
+              ({'tier': summoner_tft_stats[q_type]['tier']}, Query().nickname == str(record['nickname'])),
+              ({'leaguePoints': summoner_tft_stats[q_type]['leaguePoints']}, Query().nickname == str(record['nickname'])),
+              ({'tierEmoji': tier_emoji}, Query().nickname == str(record['nickname'])),
+              ({'wins': summoner_tft_stats[q_type]['wins']}, Query().nickname == str(record['nickname']))
             ])
             leaderboard_not_sorted[f"{record['nickname']}"] = [ranking]  # adding local rank to every player for future leaderboard
         leaderboard_sorted = sorted(  # sorting dictionary by rank
@@ -263,31 +265,9 @@ class TftCommands(commands.Cog):
           key=lambda x: x[1],
           reverse=True
         )
-        increment = 1
-        print("We're here!")
-        with open("JsonData/old_leaderboard.json") as leaderboard_file:  # get data about custom emojis from external file
-            leaderboard_file_json = leaderboard_file.read()
-            old_leaderboard = json.loads(leaderboard_file_json)
-        print("Old leaderboard loaded")
-        print(len(old_leaderboard))
-        print(len(leaderboard_sorted))
-        if len(old_leaderboard) > len(leaderboard_sorted) or len(old_leaderboard) < len(leaderboard_sorted):
-            print("Something's not right")
-            for player in leaderboard_sorted:
-                old_leaderboard[f"{player[0]}"] = increment
-                print(old_leaderboard[f"{player[0]}"])
-                increment += 1
-            with open("JsonData/old_leaderboard.json", 'w') as leaderboard_file:
-                json.dump(old_leaderboard, leaderboard_file)
-            print("Old leaderboard changed")
         iterator = 1
         for player in leaderboard_sorted:  # iterate over every player in leaderboard to give him right place
-            print("Showing leaderboard")
-            player_stats = self.db.search(Query().nickname == player[0])
-            if iterator > old_leaderboard[f"{player[0]}"]:
-                print('Climbed')
-            if iterator < old_leaderboard[f"{player[0]}"]:
-                print('Demoted')
+            player_stats = db.search(Query().nickname == player[0])
             if iterator == 1:  # first, second and third place have custom emoji besides their nickname on leaderboard
                 rank_emoji = ":first_place:"
             elif iterator == 2:
