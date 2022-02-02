@@ -1,5 +1,4 @@
 from discord.ext import commands
-from main import client
 
 
 class ReactionCommands(commands.Cog):
@@ -9,12 +8,13 @@ class ReactionCommands(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         """ Event handler for handling reactions to messages. Here's used to assign roles based on reaction. """
-        guild = await client.fetch_guild(payload.guild_id)  # get information about member and member's server
+        guild = await self.client.fetch_guild(payload.guild_id)  # get information about member and member's server
         member = await guild.fetch_member(payload.user_id)
         role = None
         # check if we react to desired message
         if payload.channel_id == 748120165001986128 and payload.message_id == 884555735671918642:
-            if str(payload.emoji) == "❌":   # switch-case for every emote / every role.
+            # switch-case for every emote / every role.
+            if str(payload.emoji) == "❌":
                 role = guild.get_role(877347765519253544)
             if str(payload.emoji) == "1️⃣":
                 role = guild.get_role(757291879195738322)
@@ -31,7 +31,7 @@ class ReactionCommands(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         """ Event handler for handling reactions to messages. Here's used to remove unwanted roles. """
-        guild = await client.fetch_guild(payload.guild_id)
+        guild = await self.client.fetch_guild(payload.guild_id)
         member = await guild.fetch_member(payload.user_id)
         role = None
         if payload.channel_id == 748120165001986128 and payload.message_id == 884555735671918642:

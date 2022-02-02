@@ -24,6 +24,7 @@ client.load_extension("administratorCommands")
 client.load_extension("manageUsersCommands")
 client.load_extension("lolCommands")
 client.load_extension("tftCommands")
+client.load_extension("settingsCommands")
 
 # Event handling
 

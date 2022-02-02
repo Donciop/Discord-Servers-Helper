@@ -1,11 +1,9 @@
 import discord
 import asyncio
 import random
-import json
 from discord.ext import commands
 from discord_slash import cog_ext  # for slash commands
 from discord_slash.utils.manage_commands import create_option
-from main import client
 
 
 class EverybodyCommands(commands.Cog):
@@ -14,11 +12,8 @@ class EverybodyCommands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self.newsChannel = client.get_channel(748120165001986128)
-        self.botChannel = client.get_channel(888056072538042428)
-        self.testChannel = client.get_channel(902710519646015498)
-        self.owner = client.get_user(198436287848382464)
-        self.guild = client.get_guild(218510314835148802)
+        self.owner = self.client.get_user(198436287848382464)
+        self.guild = self.client.get_guild(218510314835148802)
 
     @cog_ext.cog_slash(
         name="help",
@@ -34,28 +29,34 @@ class EverybodyCommands(commands.Cog):
             return
         embed = discord.Embed(
             color=0x11f80d,
-            title="📜 COMMANDS"
-        )
-        embed.add_field(
-            name="**Use `*` before every command**",
-            value=f"Most of the commands have to be used in -> {self.botChannel.mention}",
-            inline=False
+            title="📜 COMMANDS",
+            description="**Use `/` or `*` before every command**"
         )
         embed.add_field(
             name="📜 EVERYBODY",
             value="""
                   **★ `msgCountMember [Optional(@user)]`**
+                  
                   Count all messages from specific user in channel where this command is sent.
                   If user isn't specified, it will count messages of person who send the command
+                  
                   **★ `poke [@user]`**
-                  Moves user between voice channels to poke him.
+                  
+                  Moves user between voice channels to imitate TeamSpeak3's poke.
+                  
                   **★ `online [@role]`**
+                  
                   Shows online users with this role
+                  
                   **★ `keyword [word: str]`**
+                  
                   Look for a specific word or words in last 1k messages and get jump URLs to them.
                   Keyword has to be longer than 5 letters.
+                  
                   **★ `bans`**
+                  
                   Show banned users on this server
+                  
                   """,
             inline=False
         )
@@ -63,11 +64,19 @@ class EverybodyCommands(commands.Cog):
             name="📜 MANAGE CHANNELS",
             value="""
                 **★ `mute [@user] [Optional(time: min)] [Optional(reason: str)]`**
-                Mute user for certain amount of time (permanently if no time specified). You can provide a reason or leave it blank.
+                
+                Mute user for certain amount of time (permanently if no time specified).
+                You can provide a reason or leave it blank.
+                
                 **★ `deaf [@user] [Optional(time: min)] [Optional(reason: str)]`**
-                Deafen user for certain amount of time (permanently if no time specified). You can provide a reason or leave it blank.
+                
+                Deafen user for certain amount of time (permanently if no time specified).
+                You can provide a reason or leave it blank.
+                
                 **★ `mute_cf [@user]`**
+                
                 50% chance to mute user for 1 minute, but 50% chance to mute yourself for 3 minutes instead.
+                
                 """,
             inline=False
         )
@@ -75,9 +84,13 @@ class EverybodyCommands(commands.Cog):
             name="📜 MANAGE MESSAGES",
             value="""
                 **★ `clear [amount: int]`**
+                
                 Delete specified amount of messages from channel
+                
                 **★ `msgCount [Optional(#channel)]`**
+                
                 Count messages in specific channel or in current channel if not specified.
+                
                 """,
             inline=False
         )
@@ -85,6 +98,7 @@ class EverybodyCommands(commands.Cog):
             name="📜 MANAGE USERS",
             value="""
                   **★ `unban [@user]`**
+                  
                   Unban specific user
                   """,
             inline=False
@@ -93,13 +107,10 @@ class EverybodyCommands(commands.Cog):
             name="📜 ADMINISTRATOR",
             value="""
                   **★ `top`**
-                  Shows leaderboard of messages in specific channel, only available for administrator because of long computing time
+                  
+                  Shows leaderboard of messages in specific channel. 
+                  Only available for administrator because of long computing time
                   """,
-            inline=False
-        )
-        embed.add_field(
-            name="📜 ROLES",
-            value=f"Get yourself a role or remove it here -> {self.newsChannel.mention}",
             inline=False
         )
         embed.set_footer(text=f"Copyrighted by {self.owner.name} #{self.owner.discriminator}")
@@ -119,6 +130,12 @@ class EverybodyCommands(commands.Cog):
         ]
     )
     async def online(self, ctx, role):
+        """
+        Command used to search for specific keywords in message.
+
+        :param ctx: context of the command
+        :param role: Discord's role entity
+        """
         members = role.members
         empty = True
         embed = discord.Embed(color=0x11f80d)
@@ -166,6 +183,12 @@ class EverybodyCommands(commands.Cog):
         ]
     )
     async def poke(self, ctx, member):
+        """
+        Command used to search for specific keywords in message.
+
+        :param ctx: context of the command
+        :param member: Discord's member entity
+        """
         channel_check_cog = self.client.get_cog("TftCommands")
         channel_check = False
         if channel_check_cog is not None:
@@ -219,6 +242,12 @@ class EverybodyCommands(commands.Cog):
         ]
     )
     async def msg_count_member(self, ctx, member):
+        """
+        Command used to count messages from specific member in a channel.
+
+        :param ctx: context of the command
+        :param member: Discord's member entity
+        """
         await ctx.defer()
         counter = 0
         async for msg in ctx.channel.history(limit=None):
@@ -232,6 +261,11 @@ class EverybodyCommands(commands.Cog):
       guild_ids=[218510314835148802]
     )
     async def bans(self, ctx):
+        """
+        Command used to show banned members in Discord's server.
+
+        :param ctx: context of the command
+        """
         channel_check_cog = self.client.get_cog("TftCommands")
         channel_check = False
         if channel_check_cog is not None:
@@ -277,18 +311,23 @@ class EverybodyCommands(commands.Cog):
             )
         ]
     )
-    async def keyword(self, ctx, keyword):
+    async def keyword(self, ctx, keyword: str):
+        """
+        Command used to search for specific keywords in message.
+
+        :param ctx: context of the command
+        :param keyword: string that we're looking for in messages
+        """
         await ctx.defer()
         count = 0
-        if len(keyword) >= 5:
-            messages = await ctx.channel.history(limit=1000).flatten()
-            for msg in messages:
-                if keyword in msg.content:
-                    count += 1
-                    await ctx.send(msg.jump_url)
-        else:
+        if len(keyword) <= 5:
             await ctx.send("A keyword should be longer or equal to 5 letters")
             return
+        messages = await ctx.channel.history(limit=1000).flatten()
+        for msg in messages:
+            if keyword in msg.content:
+                count += 1
+                await ctx.send(msg.jump_url)
         if count < 0:
             await ctx.send("Keywords not found")
             return
@@ -301,12 +340,17 @@ class EverybodyCommands(commands.Cog):
     async def wordle(self, ctx):
         """
         Command used to start the actual game of "Wordsy".
+
+        :param ctx: context of the command
         """
         # getting server's information about dedicated channel for the bot
-        with open("JsonData/guild_configs.json") as guild_configs_file:
-            guild_config = guild_configs_file.read()
-            guild_config_dict = json.loads(guild_config)
-            guild_configs_file.close()
+        settings_cog = self.client.get_cog("SettingsCommands")
+        if settings_cog is not None:
+            guild_config_dict = await settings_cog.load_json_dict("JsonData/guild_configs.json")
+        else:
+            guild_config_dict = None
+            await ctx.send("Failed to load server's configuration :(")
+            return
 
         # checking if we're getting response in right channel and from right person
         def check(message: discord.Message):
@@ -337,10 +381,13 @@ class EverybodyCommands(commands.Cog):
              ':black_square_button:']
         ]
         winning_string = [':green_square:', ':green_square:', ':green_square:', ':green_square:', ':green_square:']
-        with open('JsonData/words_dictionary.json') as wordle_file:  # getting our dictionary from .json file
-            wordle_file_dict = wordle_file.read()
-            wordle = json.loads(wordle_file_dict)
-            wordle_file.close()
+        if settings_cog is not None:
+            wordle = await settings_cog.load_json_dict("JsonData/words_dictionary.json")
+        else:
+            wordle = None
+            await ctx.send("Failed to load dictionary :(")
+            return
+
         wordle_word = random.choice(list(wordle.keys()))  # choosing random word from the dictionary
         iterator = 1
         while True:
@@ -348,12 +395,12 @@ class EverybodyCommands(commands.Cog):
                 await ctx.send(f"You didn't make it :( The word was: {wordle_word}")
                 return
             if guild_config_dict[str(ctx.guild.id)] != ctx.channel.id:
-                wordsy_ch = client.get_channel(int(guild_config_dict[str(ctx.guild.id)]))
+                wordsy_ch = self.client.get_channel(int(guild_config_dict[str(ctx.guild.id)]))
                 await ctx.send(f"Please use Discord Wordsy in {wordsy_ch.mention}")
                 return
             await ctx.send(f"Guess the word! (5 letters) {iterator} / 6 tries")
             # wait for user's response and check channel and author of the command
-            msg = await client.wait_for('message', check=check)
+            msg = await self.client.wait_for('message', check=check)
             if any(char.isdigit() for char in msg.content):  # check if passed string doesn't have any digits in it
                 await ctx.send("Word cannot contain numbers!")
                 continue
