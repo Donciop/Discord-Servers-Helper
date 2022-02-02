@@ -16,15 +16,11 @@ slash = SlashCommand(client, sync_commands=True)
 
 # Loading cogs
 
-client.load_extension("everybodyCommands")
-client.load_extension("reactionCommands")
-client.load_extension("manageChannelsCommands")
-client.load_extension("manageMessagesCommands")
-client.load_extension("administratorCommands")
-client.load_extension("manageUsersCommands")
-client.load_extension("lolCommands")
-client.load_extension("tftCommands")
-client.load_extension("settingsCommands")
+for filename in os.listdir("./Cogs"):
+    print(filename)
+    if filename.endswith(".py"):
+        client.load_extension(f"Cogs.{filename[:-3]}")
+        print("Cog Loaded!")
 
 # Event handling
 
