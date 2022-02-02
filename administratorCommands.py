@@ -32,6 +32,12 @@ class AdministratorCommands(commands.Cog):
         ]
       )
     async def top(self, ctx, channel):
+        channel_check = None
+        settings_cog = self.client.get_cog("SettingsCommands")
+        if settings_cog is not None:
+            channel_check = await settings_cog.channel_check(ctx, ctx.channel.id)
+        if not channel_check:
+            return
         await ctx.defer()
         leaderboard_not_sorted = {}
         for member in channel.members:

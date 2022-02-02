@@ -5,7 +5,6 @@ from discord_slash.utils.manage_commands import create_option
 from tinydb import TinyDB, Query  # simple document based database
 from riotwatcher import TftWatcher  # RIOT API wrapper
 import os
-import asyncio
 
 
 class TftCommands(commands.Cog):
@@ -24,25 +23,22 @@ class TftCommands(commands.Cog):
     @commands.command()
     async def rank_check(self, ctx, summoner_rank):
         """
-        Function that checks player's rank and return specific information for further usage.
-
+        Function that checks player's rank and return specific information for further usage
         :param ctx: context of the command
-        :param summoner_rank: dictionary from Riotwatcher containing information about player's ranking.
-        :return tier_emoji: custom emoji based on player's ranking.
-        :return rank: calculated rating for local leaderboard.
+        :param summoner_rank: dictionary from Riotwatcher containing information about player's ranking
+        :return tier_emoji: custom emoji based on player's ranking
+        :return rank: calculated rating for local leaderboard
         """
         settings_cog = self.client.get_cog("SettingsCommands")
         if settings_cog is not None:
             rank_dict = await settings_cog.load_json_dict("JsonData/rankDict.json")
         else:
-            rank_dict = None
             await ctx.send("Failed to load rank's dictionary file :(")
             return
         tier_emoji = ''
         tier_list = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
         rank_list = ["IV", "III", "II", "I"]
-        q_type = 0
-        rank = 0
+        q_type = rank = 0
         if summoner_rank[0]['queueType'] == 'RANKED_TFT_TURBO':  # check if we're getting data from desired queue type
             q_type = 1
         for tier in tier_list:  # iterate over every tier until we find player's tier
@@ -59,37 +55,6 @@ class TftCommands(commands.Cog):
         rank += summoner_rank[q_type]['leaguePoints']  # calculate final rating for leaderboard
         return tier_emoji, rank
 
-    @commands.command()
-    async def channel_check(self, ctx, channel_id):
-        """
-        Function used to check if we're sending commands in right channel.
-
-        :param ctx: context of the command
-        :param channel_id: discord channel where message was sent
-        :return channel_check: boolean, means we're in right channel if True
-        """
-        settings_cog = self.client.get_cog("SettingsCommands")
-        if settings_cog is not None:
-            guild_bot_channels_dict = await settings_cog.load_json_dict("JsonData/guild_bot_channel.json")
-        else:
-            guild_bot_channels_dict = None
-            await ctx.send("Failed to load server's bot channels file :(")
-            return
-        channel_check = False
-        if guild_bot_channels_dict[str(ctx.guild.id)]:
-            for bot_channel in guild_bot_channels_dict[str(ctx.guild.id)]:
-                if channel_id == int(bot_channel):
-                    channel_check = True
-        else:
-            channel_check = True
-        # sends specific message when we're in wrong command
-        if not channel_check:
-            our_channel = self.client.get_channel(channel_id)
-            await our_channel.send(f"Please, use bot commands in bot channel to prevent spam")
-            await asyncio.sleep(3)
-            await ctx.channel.purge(limit=1)
-        return channel_check
-
     @cog_ext.cog_slash(  # slash command decorator in cog
         name="tft_rank",  # name that will be displayed in Discord
         description="Check a specific player's Teamfight Tactics rank",  # description of the command
@@ -105,12 +70,14 @@ class TftCommands(commands.Cog):
     )
     async def tft_rank(self, ctx, nickname: str):
         """
-        Command used to check player's rank in Teamfight Tactics.
-
+        Command used to check player's rank in Teamfight Tactics
         :param ctx: passing context of the command
         :param nickname: nickname of the player we want to find
         """
-        channel_check = await self.channel_check(ctx, ctx.channel.id)  # check if we're sending command in right channel
+        channel_check_cog = self.client.get_cog("SettingsCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
         # access data about specific player from RIOT API
@@ -136,7 +103,8 @@ class TftCommands(commands.Cog):
             filename="image.png"  # name of the file
         )
         embed.set_thumbnail(url="attachment://image.png")  # setting emebed's thumbnail
-        tier_emoji, rank = await self.rank_check(ctx, summoner_tft_stats)  # get player's rank and rating for leaderboard
+        # get player's rank and rating for leaderboard
+        tier_emoji, rank = await self.rank_check(ctx, summoner_tft_stats)
         q_type = 0
         if summoner_tft_stats[0]['queueType'] == 'RANKED_TFT_TURBO':  # check if we're processing right queue type
             q_type = 1
@@ -164,15 +132,17 @@ class TftCommands(commands.Cog):
     )
     async def tft_add_player(self, ctx, nickname: str):
         """
-        Command used to add players to the database for further usage in leaderboard.
-
+        Command used to add players to the database for further usage in leaderboard
         :param ctx: passing context of the command
         :param nickname: nickname of the player we want to add
         """
-        db = TinyDB('JsonData/db.json')
-        channel_check = await self.channel_check(ctx, ctx.channel.id)
+        channel_check_cog = self.client.get_cog("SettingsCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
+        db = TinyDB('JsonData/db.json')
         summoner = self.watcher.summoner.by_name(self.region, nickname)
         if not summoner:
             await ctx.send(f"Can't find **{nickname}** on EUNE server.")
@@ -215,15 +185,17 @@ class TftCommands(commands.Cog):
     )
     async def tft_remove_player(self, ctx, nickname: str):
         """
-        Command used to remove players from database on demand.
-
+        Command used to remove players from database on demand
         :param ctx: passing context of the command
         :param nickname: nickname of the player we want to add
         """
-        db = TinyDB('JsonData/db.json')
-        channel_check = await self.channel_check(ctx, ctx.channel.id)
+        channel_check_cog = self.client.get_cog("SettingsCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
+        db = TinyDB('JsonData/db.json')
         if not ctx.author.guild_permissions.manage_messages:
             await ctx.send("You don't have permission to delete users from database, ask administrators or moderators")
             return
@@ -240,12 +212,14 @@ class TftCommands(commands.Cog):
     )
     async def tft_ranking(self, ctx):
         """
-        Command used to show local leaderboard of Teamfight Tactics player that are in our database.
-
+        Command used to show local leaderboard of Teamfight Tactics player that are in our database
         :param ctx: passing context of the command
         """
         db = TinyDB('JsonData/db.json')
-        channel_check = await self.channel_check(ctx, ctx.channel.id)
+        channel_check_cog = self.client.get_cog("SettingsCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
         embed = discord.Embed(
@@ -267,7 +241,7 @@ class TftCommands(commands.Cog):
             if summoner_tft_stats[0]['queueType'] == 'RANKED_TFT_TURBO':
                 q_type = 1
             tier_emoji, ranking = await self.rank_check(ctx, summoner_tft_stats)
-            db.update_multiple([  # update database from RIOT API information to get up to date statistics
+            db.update_multiple([  # update database from RIOT API information to get up-to-date statistics
               ({'matchesPlayed': (summoner_tft_stats[q_type]['wins']+summoner_tft_stats[q_type]['losses'])}, Query().nickname == str(record['nickname'])),
               ({'rank': summoner_tft_stats[q_type]['rank']}, Query().nickname == str(record['nickname'])),
               ({'tier': summoner_tft_stats[q_type]['tier']}, Query().nickname == str(record['nickname'])),
@@ -328,7 +302,10 @@ class TftCommands(commands.Cog):
         ]
     )
     async def tft_stats(self, ctx, nickname: str, number_of_matches: int):
-        channel_check = await self.channel_check(ctx, ctx.channel.id)
+        channel_check_cog = self.client.get_cog("SettingsCommands")
+        channel_check = False
+        if channel_check_cog is not None:
+            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
         # due to API limitations, we can't collect data from more than 500 matches
@@ -352,8 +329,6 @@ class TftCommands(commands.Cog):
             all_stats = await settings_cog.load_json_dict("JsonData/allStats.json")
             comps = await settings_cog.load_json_dict("JsonData/tftComps.json")
         else:
-            all_stats = None
-            comps = None
             await ctx.send("Failed to load one of dictionary files :(")
             return
         await ctx.defer()
@@ -432,14 +407,15 @@ class TftCommands(commands.Cog):
                   inline=False
                 )
         # adding field with favourite traits that player has played the most in his games
+        print(comps_sorted[0][1][2])
         embed.add_field(
           name="FAVOURITE TRAITS",
           value=f"""
-          **{comps_sorted[0][1][2]} {comps_sorted[0][0][5:]}** in {comps_sorted[0][1][0]} matches with **{round((comps_sorted[0][1][1]/comps_sorted[0][1][0])*100, 2)}%** top 4 ratio
-          **{comps_sorted[1][1][2]} {comps_sorted[1][0][5:]}** in {comps_sorted[1][1][0]} matches with **{round((comps_sorted[1][1][1]/comps_sorted[1][1][0])*100, 2)}%** top 4 ratio
-          **{comps_sorted[2][1][2]} {comps_sorted[2][0][5:]}** in {comps_sorted[2][1][0]} matches with **{round((comps_sorted[2][1][1]/comps_sorted[2][1][0])*100, 2)}**% top 4 ratio
-          **{comps_sorted[3][1][2]} {comps_sorted[3][0][5:]}** in {comps_sorted[3][1][0]} matches with **{round((comps_sorted[3][1][1]/comps_sorted[3][1][0])*100, 2)}**% top 4 ratio
-          **{comps_sorted[4][1][2]} {comps_sorted[4][0][5:]}** in {comps_sorted[4][1][0]} matches with **{round((comps_sorted[4][1][1]/comps_sorted[4][1][0])*100, 2)}**% top 4 ratio 
+          **{str(comps_sorted[0][1][2])} {comps_sorted[0][0][5:]}** in {comps_sorted[0][1][0]} matches with **{round((comps_sorted[0][1][1]/comps_sorted[0][1][0])*100, 2)}%** top 4 ratio
+          **{str(comps_sorted[1][1][2])} {comps_sorted[1][0][5:]}** in {comps_sorted[1][1][0]} matches with **{round((comps_sorted[1][1][1]/comps_sorted[1][1][0])*100, 2)}%** top 4 ratio
+          **{str(comps_sorted[2][1][2])} {comps_sorted[2][0][5:]}** in {comps_sorted[2][1][0]} matches with **{round((comps_sorted[2][1][1]/comps_sorted[2][1][0])*100, 2)}**% top 4 ratio
+          **{str(comps_sorted[3][1][2])} {comps_sorted[3][0][5:]}** in {comps_sorted[3][1][0]} matches with **{round((comps_sorted[3][1][1]/comps_sorted[3][1][0])*100, 2)}**% top 4 ratio
+          **{str(comps_sorted[4][1][2])} {comps_sorted[4][0][5:]}** in {comps_sorted[4][1][0]} matches with **{round((comps_sorted[4][1][1]/comps_sorted[4][1][0])*100, 2)}**% top 4 ratio 
           """
         )
         await ctx.send(embed=embed, file=file)

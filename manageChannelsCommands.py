@@ -41,7 +41,7 @@ class ManageChannelsCommands(commands.Cog):
         ]
     )
     async def dc_mute(self, ctx, member, reason=None):
-        channel_check_cog = self.client.get_cog("TftCommands")
+        channel_check_cog = self.client.get_cog("SettingsCommands")
         channel_check = False
         if channel_check_cog is not None:
             channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
@@ -49,9 +49,9 @@ class ManageChannelsCommands(commands.Cog):
             return
         await member.edit(mute=True)
         if reason:
-            await ctx.send(f"**{member.display_name}** was muted by **{ctx.author.display_name}**, reason: {reason}")
+            await ctx.send(f"**{member.mention}** was muted by **{ctx.author.mention}**\n**Reason**: {reason}")
         else:
-            await ctx.send(f"**{member.display_name}** was muted by **{ctx.author.display_name}**")
+            await ctx.send(f"**{member.mention}** was muted by **{ctx.author.mention}**")
 
     @cog_ext.cog_slash(  # slash command decorator
         name="dc_deaf",  # name that will be displayed in Discord
@@ -81,8 +81,8 @@ class ManageChannelsCommands(commands.Cog):
             )
         ]
     )
-    async def deaf(self, ctx, member, reason=None):
-        channel_check_cog = self.client.get_cog("TftCommands")
+    async def dc_deaf(self, ctx, member, reason=None):
+        channel_check_cog = self.client.get_cog("SettingsCommands")
         channel_check = False
         if channel_check_cog is not None:
             channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
@@ -90,45 +90,48 @@ class ManageChannelsCommands(commands.Cog):
             return
         await member.edit(deafen=True)
         if reason:
-            await ctx.send(f"**{member.display_name}** was deafened by **{ctx.author.display_name}**, reason: {reason}")
+            await ctx.send(f"""
+            **{member.mention}** was deafened by **{ctx.author.mention}**\n**Reason**: {reason}
+            """)
         else:
-            await ctx.send(f"**{member.display_name}** was deafened by **{ctx.author.display_name}**")
+            await ctx.send(f"**{member.mention}** was deafened by **{ctx.author.mention}**")
 
     @commands.command()
-    @commands.has_permissions(mute_members=True)
+    @commands.has_permissions(administrator=True)
     @commands.cooldown(1, 2, commands.BucketType.user)
     async def mute_cf(self, ctx, member: typing.Optional[discord.Member]):
-        mute_minutes_self = mute_minutes = 0
-        number = random.randint(0, 100)
-        channel_check_cog = self.client.get_cog("TftCommands")
+        channel_check_cog = self.client.get_cog("SettingsCommands")
         channel_check = False
         if channel_check_cog is not None:
             channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
+        mute_minutes_self = mute_minutes = 0
+        number = random.randint(0, 100)
         if not member:
             await ctx.send("""
-            🛑 Mute Coinflip Failed
-            You have to specify a Discord member to mute
+            🛑 Mute Coinflip Failed\n
+You have to specify a Discord member to mute
             """)
             return
         if ctx.message.author == member:
             await ctx.send("""
             🛑 Mute Coinflip Failed
-            You can't coinflip with yourself
+You can't coinflip with yourself
             """)
+            return
         if number >= 50:
             await member.edit(mute=True)
             await ctx.send(f"""
-            ✅ Mute Coinflip Successful
-            You've rolled {str(number)} and muted {member.display_name} for 1 minute
+            ✅ Mute Coinflip Successful\n
+You've rolled {str(number)} and muted {member.mention} for 1 minute
             """)
             mute_minutes += 1
         else:
             await ctx.author.edit(mute=True)
             await ctx.send(f"""
-            🛑 Mute Coinflip Failed
-            You've rolled {str(number)} and failed to mute {member.display_name}, however you got muted for 3 minutes
+            🛑 Mute Coinflip Failed\n
+You've rolled {str(number)} and failed to mute {member.mention}, however you got muted for 3 minutes
             """)
             mute_minutes_self += 3
         if mute_minutes_self > 0:

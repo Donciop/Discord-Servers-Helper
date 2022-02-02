@@ -15,8 +15,8 @@ class ManageUsersCommands(commands.Cog):
         permissions={
             218510314835148802: [
                 create_permission(545658751689031699, SlashCommandPermissionType.ROLE, True),
-                create_permission(748144455730593792, SlashCommandPermissionType.ROLE, True),
-                create_permission(826094492309258291, SlashCommandPermissionType.ROLE, True),
+                create_permission(748144455730593792, SlashCommandPermissionType.ROLE, False),
+                create_permission(826094492309258291, SlashCommandPermissionType.ROLE, False),
                 create_permission(541960938165764096, SlashCommandPermissionType.ROLE, False),
                 create_permission(541961631954108435, SlashCommandPermissionType.ROLE, False)
             ]
@@ -39,12 +39,11 @@ class ManageUsersCommands(commands.Cog):
     async def unban(self, ctx, nickname, discriminator):
         """
         Command used to un-ban members that are banned on server (guild)
-
         :param ctx: passing context of the command
         :param nickname: Discord's nickname
         :param discriminator: Discord's discriminator (for ex. #1234)
         """
-        channel_check_cog = self.client.get_cog("TftCommands")
+        channel_check_cog = self.client.get_cog("SettingsCommands")
         channel_check = False
         if channel_check_cog is not None:
             channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)

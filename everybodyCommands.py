@@ -21,10 +21,14 @@ class EverybodyCommands(commands.Cog):
         guild_ids=[218510314835148802]
     )
     async def help(self, ctx):
-        channel_check_cog = self.client.get_cog("TftCommands")
-        channel_check = False
-        if channel_check_cog is not None:
-            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        """
+        Basic help command, shows information about all the available commands
+        :param ctx: context of the command
+        """
+        channel_check = None
+        settings_cog = self.client.get_cog("SettingsCommands")
+        if settings_cog is not None:
+            channel_check = await settings_cog.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
         embed = discord.Embed(
@@ -34,12 +38,7 @@ class EverybodyCommands(commands.Cog):
         )
         embed.add_field(
             name="📜 EVERYBODY",
-            value="""
-                  **★ `msgCountMember [Optional(@user)]`**
-                  
-                  Count all messages from specific user in channel where this command is sent.
-                  If user isn't specified, it will count messages of person who send the command
-                  
+            value="""   
                   **★ `poke [@user]`**
                   
                   Moves user between voice channels to imitate TeamSpeak3's poke.
@@ -87,10 +86,10 @@ class EverybodyCommands(commands.Cog):
                 
                 Delete specified amount of messages from channel
                 
-                **★ `msgCount [Optional(#channel)]`**
-                
-                Count messages in specific channel or in current channel if not specified.
-                
+                **★ `dc_count_messages [#channel] [Optional(@user)]`**
+                  
+                Count all messages from specific user in specific channel.
+                If user isn't specified, it will count all messages in that channel.
                 """,
             inline=False
         )
@@ -131,8 +130,7 @@ class EverybodyCommands(commands.Cog):
     )
     async def online(self, ctx, role):
         """
-        Command used to search for specific keywords in message.
-
+        Command used to search for specific keywords in message
         :param ctx: context of the command
         :param role: Discord's role entity
         """
@@ -184,15 +182,14 @@ class EverybodyCommands(commands.Cog):
     )
     async def poke(self, ctx, member):
         """
-        Command used to search for specific keywords in message.
-
+        Command used to search for specific keywords in message
         :param ctx: context of the command
         :param member: Discord's member entity
         """
-        channel_check_cog = self.client.get_cog("TftCommands")
-        channel_check = False
-        if channel_check_cog is not None:
-            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        channel_check = None
+        settings_cog = self.client.get_cog("SettingsCommands")
+        if settings_cog is not None:
+            channel_check = await settings_cog.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
         await ctx.defer()
@@ -229,47 +226,19 @@ class EverybodyCommands(commands.Cog):
         await ctx.send(embed=embed)
 
     @cog_ext.cog_slash(
-        name="dc_count_messages",
-        description="Count messages from specific member in that channel!",
-        guild_ids=[218510314835148802],
-        options=[
-            create_option(
-              name="member",
-              description="Select member!",
-              option_type=6,
-              required=True
-            )
-        ]
-    )
-    async def msg_count_member(self, ctx, member):
-        """
-        Command used to count messages from specific member in a channel.
-
-        :param ctx: context of the command
-        :param member: Discord's member entity
-        """
-        await ctx.defer()
-        counter = 0
-        async for msg in ctx.channel.history(limit=None):
-            if msg.author == member:
-                counter += 1
-        await ctx.send(f"User {member.display_name} had written {str(counter)} messages in {ctx.channel.mention}")
-
-    @cog_ext.cog_slash(
       name="dc_bans",
       description="Show banned users",
       guild_ids=[218510314835148802]
     )
     async def bans(self, ctx):
         """
-        Command used to show banned members in Discord's server.
-
+        Command used to show banned members in Discord's server
         :param ctx: context of the command
         """
-        channel_check_cog = self.client.get_cog("TftCommands")
-        channel_check = False
-        if channel_check_cog is not None:
-            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        channel_check = None
+        settings_cog = self.client.get_cog("SettingsCommands")
+        if settings_cog is not None:
+            channel_check = await settings_cog.channel_check(ctx, ctx.channel.id)
         if not channel_check:
             return
         banned_users = await self.guild.bans()
@@ -313,8 +282,7 @@ class EverybodyCommands(commands.Cog):
     )
     async def keyword(self, ctx, keyword: str):
         """
-        Command used to search for specific keywords in message.
-
+        Command used to search for specific keywords in message
         :param ctx: context of the command
         :param keyword: string that we're looking for in messages
         """
@@ -339,8 +307,7 @@ class EverybodyCommands(commands.Cog):
     @commands.cooldown(1, 2, commands.BucketType.user)
     async def wordle(self, ctx):
         """
-        Command used to start the actual game of "Wordsy".
-
+        Command used to start the actual game of "Wordsy"
         :param ctx: context of the command
         """
         # getting server's information about dedicated channel for the bot

@@ -3,9 +3,7 @@ from discord.ext import commands
 from discord_slash import cog_ext  # for slash commands
 from discord_slash.utils.manage_commands import create_option
 from riotwatcher import LolWatcher  # RIOT API wrapper
-from main import client  # utility packages
 import os
-import json
 
 
 class LolCommands(commands.Cog):
@@ -14,30 +12,32 @@ class LolCommands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self.newsChannel = client.get_channel(748120165001986128)  # for channel check, to make sure commands are used in right channel
-        self.botChannel = client.get_channel(888056072538042428)
-        self.testChannel = client.get_channel(902710519646015498)
         self.watcher = LolWatcher(os.getenv('APIKEYLOL'))  # RIOT API KEY
         self.region = 'eun1'  # used in Riotwatcher to determine which region we're looking for
         self.logoFilepath = "Media/LOL-logo.jpg"  # filepaths for files send with Discord embeds
 
     @commands.command()
-    async def lol_rank_check(self, summoner_rank):
+    async def lol_rank_check(self, ctx, summoner_rank):
         """
-        Function used to determine player's rank on League of Legends.
+        Function used to determine player's rank on League of Legends
+        :param ctx: context of the command
+        :param summoner_rank: dictionary from Riotwatcher containing information about player's ranking
+        :return solo_emoji: custom emoji based on player's ranking on Ranked Solo Queue
+        :return flex_emoji: custom emoji based on player's ranking on Ranked Flex Queue
+        """
 
-        :param summoner_rank: dictionary from Riotwatcher containing information about player's ranking.
-        :return solo_emoji: custom emoji based on player's ranking on Ranked Solo Queue.
-        :return flex_emoji: custom emoji based on player's ranking on Ranked Flex Queue.
-        """
-        with open("JsonData/rankDict.json") as rankDict:  # get data about custom emojis from external file
-            rank_dict_json = rankDict.read()
-            rank_dict = json.loads(rank_dict_json)
+        settings_cog = self.client.get_cog("SettingsCommands")
+        if settings_cog is not None:
+            rank_dict = await settings_cog.load_json_dict("JsonData/rankDict.json")
+        else:
+            await ctx.send("Failed to load ranks dictionary :(")
+            return
         tier_list = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
         flex_emoji = None
         solo_emoji = None
         for q_type in summoner_rank:  # iterate over every queue type
-            # for some reason, in data about League of Legends, there is queue from Teamfight Tactics, so we dismiss that
+            # for some reason, in data about League of Legends,
+            # there is a queue from Teamfight Tactics, so we dismiss that
             if q_type['queueType'] == 'RANKED_TFT_PAIRS':
                 continue
             for tier in tier_list:  # iterate over every tier until we find player's tier
@@ -63,11 +63,16 @@ class LolCommands(commands.Cog):
     )
     async def lol_rank(self, ctx, nickname: str):
         """
-        Command used to check player's rank and display information about it.
-
+        Command used to check player's rank and display information about it
         :param ctx: passing context of the command
         :param nickname: nickname of the player we want to find
         """
+        channel_check = None
+        settings_cog = self.client.get_cog("SettingsCommands")
+        if settings_cog is not None:
+            channel_check = await settings_cog.channel_check(ctx, ctx.channel.id)
+        if not channel_check:
+            return
         me = self.watcher.summoner.by_name(self.region, nickname)  # access data about specific player from RIOT API
         if not me:  # check if the player actually exists
             await ctx.send(f"Can't find summoner {nickname}")
@@ -86,8 +91,8 @@ class LolCommands(commands.Cog):
             self.logoFilepath,  # file path to image
             filename="image.jpg"  # name of the file
         )
-        embed.set_thumbnail(url="attachment://image.jpg")  # setting emebed's thumbnail
-        solo_emoji, flex_emoji = await self.lol_rank_check(me_ranked_stats)  # get player's rank and rating for leaderboard
+        embed.set_thumbnail(url="attachment://image.jpg")  # setting emebed thumbnail
+        solo_emoji, flex_emoji = await self.lol_rank_check(ctx, me_ranked_stats)  # get player's rank and rating for leaderboard
         for qType in me_ranked_stats:  # iterate over every queue type to change their names and assign custom emojis
             if qType['queueType'] == 'RANKED_TFT_PAIRS':
                 continue
@@ -130,34 +135,43 @@ class LolCommands(commands.Cog):
     )
     async def lol_live_game(self, ctx, nickname: str):
         """
-        Command used to check player's live game along with information about enemies and teammates.
-
+        Command used to check player's live game along with information about enemies and teammates
         :param ctx: passing context of the command
         :param nickname: nickname of the player we want to find
         """
+        channel_check = None
+        settings_cog = self.client.get_cog("SettingsCommands")
+        if settings_cog is not None:
+            channel_check = await settings_cog.channel_check(ctx, ctx.channel.id)
+        if not channel_check:
+            return
         team = team_champs = team_ranks = []  # initialize empty lists for further storage of players
         # check the latest version of League of Legends
         latest = self.watcher.data_dragon.versions_for_region('eune')['n']['champion']
         # access data from external file contains information about characters in League of Legends
         static_champ_list = self.watcher.data_dragon.champions(latest, False, 'en_US')
         champ_dict = {}  # initialize empty dictionary contains data about characters in League of Legends.
-        for key in static_champ_list['data']:  # iterate over every champion to assign them to corresponding champion's ID
+        # iterate over every champion to assign them to corresponding champion's ID
+        for key in static_champ_list['data']:
             row = static_champ_list['data'][key]
             champ_dict[row['key']] = row['id']
         summoner = self.watcher.summoner.by_name(self.region, nickname)
         if not summoner:
             await ctx.send(f"Can't find summoner{nickname}")
             return
-        live_game = self.watcher.spectator.by_summoner(self.region, summoner['id'])  # acces data about player's live game
+        # acces data about player's live game
+        live_game = self.watcher.spectator.by_summoner(self.region, summoner['id'])
         if not live_game:  # check if the game exists
             await ctx.send(f"{nickname}'s not in game")
             return  # return if player's not in game
         for participant in live_game['participants']:  # iterate over every participant in match to access their data.
-            participant['championId'] = champ_dict[str(participant['championId'])]  # assign champion's name based on their ID using dictionary that we made
+            # assign champion's name based on their ID using dictionary that we made
+            participant['championId'] = champ_dict[str(participant['championId'])]
             summoner_in_game = self.watcher.summoner.by_name(self.region, participant['summonerName'])
             summoner_rank = self.watcher.league.by_summoner(self.region, summoner_in_game['id'])
             if summoner_rank:  # check if player has rank in League of Legends
-                if live_game['gameQueueConfigId'] == 440:  # check queue type of the live game to determine what rank to show
+                # check queue type of the live game to determine what rank to show
+                if live_game['gameQueueConfigId'] == 440:
                     q_type = "RANKED_FLEX_SR"
                 else:
                     q_type = "RANKED_SOLO_5x5"
@@ -165,13 +179,14 @@ class LolCommands(commands.Cog):
                     q_operator = 0
                 elif summoner_rank[1]['queueType'] == q_type:
                     q_operator = 1
-                flex_emoji, solo_emoji = await self.lol_rank_check(summoner_rank)
+                flex_emoji, solo_emoji = await self.lol_rank_check(ctx, summoner_rank)
                 rank = f"{solo_emoji} {summoner_rank[q_operator]['tier']} {summoner_rank[q_operator]['rank']} | {summoner_rank[q_operator]['leaguePoints']} LP"
                 team_ranks.append(rank)  # add player's rank to the list of participants ranks
             else:
                 rank = "Unranked"
                 team_ranks.append(rank)
-                team_champs.append(participant['championId'])  # add player's champion to the list of participants champions
+                # add player's champion to the list of participants champions
+                team_champs.append(participant['championId'])
                 team.append(participant['summonerName'])  # add player to the list of participants
         if q_type == "RANKED_FLEX_5x5":
             q_type = 'Ranked Flex'
