@@ -7,7 +7,6 @@ class SettingsCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @commands.command()
     async def load_json_dict(self, filepath: str):
         if not filepath:
             return
@@ -17,7 +16,6 @@ class SettingsCommands(commands.Cog):
             file.close()
         return final_dict
 
-    @commands.command()
     async def channel_check(self, ctx, channel_id):
         """
         Function used to check if we're sending commands in right channel
