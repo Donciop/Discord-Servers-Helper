@@ -31,42 +31,12 @@ for filename in os.listdir("./Cogs"):
 async def on_ready():
     """ Event handler that is called when bot is turned on. """
     print("Bot is ready")
-    await load_members()
     await client.change_presence(   # change the bot description on Discord member list
       activity=discord.Activity(
         type=discord.ActivityType.watching,  # get the "is watching ..." format
         name="small servers *help"
       )
     )
-
-
-async def load_members():
-    iterator = 1
-    guilds = {}
-    for guild in client.guilds:
-        guilds[guild.id] = {
-            'nickname':
-            {
-                'time_on_voice_channel': '',
-                'start_online_time': '',
-                'end_online_time': '',
-                'time_online': '',
-                'time_away': '',
-                'messages_sent': ''
-            }
-        }
-        for member in guild.members:
-            if member.bot:
-                continue
-            else:
-                guilds[guild.id][member.name] = {
-                        'time_on_voice_channel': '',
-                        'start_online_time': '',
-                        'end_online_time': '',
-                        'time_online': '',
-                        'time_away': '',
-                        'messages_sent': ''
-                    }
 
 
 @client.event
@@ -166,7 +136,19 @@ async def reminder():
 
     bot_channel = client.get_channel(796794980810620948)  # check if we're sending message in right channel
     if hour == 11 and minute == 00:
-        await bot_channel.send("It's high noon!")
+        await bot_channel.send("""
+        It's high noon!
+        
+        Please vote for my second bot, Discord Wordsy, so I could have Alak Kebab once a week
+        https://top.gg/bot/934989894995021866/vote
+        """)
+    if hour == 23 and minute == 00:
+        await bot_channel.send("""
+        It's midnight!
+        
+        Please vote for my second bot, Discord Wordsy, so I could have Alak Kebab once a week
+        https://top.gg/bot/934989894995021866/vote
+        """)
 
 
 @reminder.before_loop

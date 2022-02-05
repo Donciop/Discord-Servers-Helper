@@ -1,6 +1,7 @@
 from discord.ext import commands
 import json
 import asyncio
+from pymongo import MongoClient
 
 
 class SettingsCommands(commands.Cog):
@@ -44,6 +45,44 @@ class SettingsCommands(commands.Cog):
             await ctx.channel.purge(limit=1)
         return channel_check
 
+    async def check_time(self, ctx):
+        print(f"{ctx.author.name}, Done")
+        client = MongoClient("mongodb+srv://DzonyMongony:DzonyBravo12345@creamdatabase.pju7t.mongodb.net/Discord_Bot_DB?retryWrites=true&w=majority")
+        print(f"{ctx.author.name}, Done")
+        db = client.test
+        cluster = MongoClient(client)
+        db = cluster['Discord_Bot_DB']
+        collection = db['Guild_Members']
+        await collection.insert_one({"nickname": ctx.author.name})
+        print(f"{ctx.author.name}, Done")
+
+    async def load_members(self):
+        iterator = 1
+        guilds = {}
+        for guild in self.client.guilds:
+            guilds[guild.id] = {
+                'nickname':
+                {
+                    'time_on_voice_channel': '',
+                    'start_online_time': '',
+                    'end_online_time': '',
+                    'time_online': '',
+                    'time_away': '',
+                    'messages_sent': ''
+                }
+            }
+            for member in guild.members:
+                if member.bot:
+                    continue
+                else:
+                    guilds[guild.id][member.name] = {
+                            'time_on_voice_channel': '',
+                            'start_online_time': '',
+                            'end_online_time': '',
+                            'time_online': '',
+                            'time_away': '',
+                            'messages_sent': ''
+                        }
 
 def setup(client):
     client.add_cog(SettingsCommands(client))
