@@ -45,9 +45,10 @@ class SettingsCommands(commands.Cog):
             await ctx.channel.purge(limit=1)
         return channel_check
 
+    """
     async def check_time(self, ctx):
         print(f"{ctx.author.name}, Done")
-        client = MongoClient("mongodb+srv://DzonyMongony:DzonyBravo12345@creamdatabase.pju7t.mongodb.net/Discord_Bot_DB?retryWrites=true&w=majority")
+        client = MongoClient()
         print(f"{ctx.author.name}, Done")
         db = client.test
         cluster = MongoClient(client)
@@ -55,6 +56,7 @@ class SettingsCommands(commands.Cog):
         collection = db['Guild_Members']
         await collection.insert_one({"nickname": ctx.author.name})
         print(f"{ctx.author.name}, Done")
+    """
 
     async def load_members(self):
         iterator = 1
