@@ -81,6 +81,10 @@ async def on_member_update(before, after):
     if after.activities and not before.activities:
         for after_activity in after.activities:
             if after_activity.type == discord.ActivityType.playing:
+                if after_activity.name == "League of Legends":
+                    if collection.find_one({"_id": before.id}):
+                        collection.update_one({"_id": after.id},
+                                              {"$set": {"league_start_time": datetime.now().replace(microsecond=0)}})
                 print(f"{before.display_name} has started playing {after_activity.name}")
             elif after_activity.type == discord.Game:
                 print(f"{before.display_name} has started playing {after_activity.name} at {after_activity.start}")
@@ -90,6 +94,18 @@ async def on_member_update(before, after):
     elif before.activities and not after.activities:
         for before_activity in before.activities:
             if before_activity.type == discord.ActivityType.playing:
+                if before_activity.name == "League of Legends":
+                    if collection.find_one({"_id": before.id}):
+                        collection.update_one({"_id": after.id},
+                                              {"$set": {"league_end_time": datetime.now().replace(microsecond=0)}})
+                        start_time = collection.find_one({"_id": before.id}, {"league_start_time": 1})
+                        end_time = collection.find_one({"_id": before.id}, {"league_end_time": 1})
+                        final_time = collection.find_one({"_id": before.id}, {"league_time": 1})
+                        if final_time['league_time'] == "00:00:00":
+                            final_time['league_time'] = datetime.strptime(final_time['league_time'], '%H:%M:%S')
+                        final_time['league_time'] += (end_time['league_end_time'] - start_time['league_start_time'])
+                        collection.update_one({"_id": before.id},
+                                              {"$set": {"league_time": final_time['league_time']}})
                 print(f"{before.display_name} stopped playing {before_activity.name}")
             elif before_activity.type == discord.Game:
                 print(f"{before.display_name} stopped playing {before_activity.name}")
@@ -120,7 +136,6 @@ async def on_member_update(before, after):
         final_time['time_online'] += (end_time['end_online_time'] - start_time['start_online_time'])
         collection.update_one({"_id": before.id},
                               {"$set": {"time_online": final_time['time_online']}})
-        print(f"{before.name} was online for {final_time['time_online'].second} seconds!")
 
     if str(before.status) == 'online' and str(after.status) == 'idle':
         print(f"{before.display_name} is away")
