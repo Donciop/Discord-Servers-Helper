@@ -356,16 +356,16 @@ class EverybodyCommands(commands.Cog):
             await ctx.send(f"{member.mention} wasn't online yet")
         elif time_online['time_online'].second > 0 and time_online['time_online'].minute < 1:
             await ctx.send(
-                f"{member.mention} was online for {time_online['time_online'].second} seconds so far! (from 07.02.2022)")
-        elif time_online['time_online'].minute > 0:
+                f"{member.mention} was online for **{time_online['time_online'].second}** seconds so far! (from 07.02.2022)")
+        elif time_online['time_online'].minute > 0 and time_online['time_online'].hour < 1:
             await ctx.send(
-                f"{member.mention} was online for {time_online['time_online'].minute}m {time_online['time_online'].second}s so far! (from 07.02.2022)")
-        elif time_online['time_online'].hour > 0:
+                f"{member.mention} was online for **{time_online['time_online'].minute}m {time_online['time_online'].second}s** so far! (from 07.02.2022)")
+        elif time_online['time_online'].hour > 0 and time_online['time_online'].day < 2:
             await ctx.send(
-                f"{member.mention} was online for {time_online['time_online'].hour}h {time_online['time_online'].minute}m {time_online['time_online'].second}s so far! (from 07.02.2022)")
-        elif time_online['time_online'].day > 1:
+                f"{member.mention} was online for **{time_online['time_online'].hour}h {time_online['time_online'].minute}m {time_online['time_online'].second}s** so far! (from 07.02.2022)")
+        elif time_online['time_online'].day >= 2:
             await ctx.send(
-                f"{member.mention} was online for {time_online['time_online'].day}d {time_online['time_online'].hour}h {time_online['time_online'].minute}m {time_online['time_online'].second}s so far! (from 07.02.2022)")
+                f"{member.mention} was online for **{time_online['time_online'].day}d {time_online['time_online'].hour}h {time_online['time_online'].minute}m {time_online['time_online'].second}s** so far! (from 07.02.2022)")
 
     @cog_ext.cog_slash(
         name="lol_time",
@@ -392,16 +392,16 @@ class EverybodyCommands(commands.Cog):
             await ctx.send(f"{member.mention} hasn't played League of Legends")
         elif time_online['league_time'].second > 0 and time_online['league_time'].minute < 1:
             await ctx.send(
-                f"{member.mention} was playing League of Legends {time_online['league_time'].second} seconds so far! (from 07.02.2022)")
-        elif time_online['league_time'].minute > 0:
+                f"{member.mention} was playing League of Legends for **{time_online['league_time'].second}** seconds so far! (from 07.02.2022)")
+        elif time_online['league_time'].minute > 0 and time_online['league_time'].hour < 1:
             await ctx.send(
-                f"{member.mention} was playing League of Legends {time_online['league_time'].minute}m {time_online['league_time'].second}s so far! (from 07.02.2022)")
-        elif time_online['league_time'].hour > 0:
+                f"{member.mention} was playing League of Legends for **{time_online['league_time'].minute}m {time_online['league_time'].second}s** so far! (from 07.02.2022)")
+        elif time_online['league_time'].hour > 0 and time_online['league_time'].day < 2:
             await ctx.send(
-                f"{member.mention} was playing League of Legends {time_online['league_time'].hour}h {time_online['league_time'].minute}m {time_online['league_time'].second}s so far! (from 07.02.2022)")
-        elif time_online['league_time'].day > 1:
+                f"{member.mention} was playing League of Legends for **{time_online['league_time'].hour}h {time_online['league_time'].minute}m {time_online['league_time'].second}s** so far! (from 07.02.2022)")
+        elif time_online['league_time'].day >= 2:
             await ctx.send(
-                f"{member.mention} was playing League of Legends for {time_online['league_time'].day}d {time_online['league_time'].hour}h {time_online['league_time'].minute}m {time_online['league_time'].second}s so far! (from 07.02.2022)")
+                f"{member.mention} was playing League of Legends for **{time_online['league_time'].day}d {time_online['league_time'].hour}h {time_online['league_time'].minute}m {time_online['league_time'].second}s** so far! (from 07.02.2022)")
 
     @commands.command()
     @commands.cooldown(1, 2, commands.BucketType.user)
