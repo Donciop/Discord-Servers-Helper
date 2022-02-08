@@ -7,3 +7,4 @@ riotwatcher
 requests
 typing-extensions == 4.0.1
 pymongo
+dnspython
