@@ -3,8 +3,8 @@ from discord.ext import commands, tasks
 from discord_slash import SlashCommand  # for slash commands
 import os  # utility packages
 import datetime
-import json
-from datetime import datetime, timedelta
+from datetime import datetime
+from pymongo import MongoClient
 
 # Making sure the bot has all the permissions
 
@@ -40,26 +40,44 @@ async def on_ready():
 
 
 @client.event
-async def on_member_join(ctx, member):
-    with open("JsonData/guild_members.json", 'w') as guild_members_file:
-        guild_members_file_dict = guild_members_file.read()
-        guilds = json.loads(guild_members_file_dict)
-        guilds[ctx.guild.id][member.name] = {
-                    'time_on_voice_channel': '',
-                    'time_online': '',
-                    'time_away': '',
-                    'messages_sent': ''
-                }
-        json.dump(guilds, guild_members_file)
-        guild_members_file.close()
+async def on_message(message):
+    mongo_client = MongoClient(os.getenv('MONGOURL'))
+    db = mongo_client['Discord_Bot_Database']
+    collection = db['members']
+    collection.update_one(
+        {"nickname": message.author.name},
+        {"$inc": {"messages_sent": 1}}
+    )
+    await client.process_commands(message)
+
+
+@client.event
+async def on_member_join(member):
+    mongo_client = MongoClient(os.getenv('MONGOURL'))
+    db = mongo_client['Discord_Bot_Database']
+    collection = db['members']
+    check = collection.find_one({"_id": member.id})
+    if not check:
+        query = {
+            '_id': member.id,
+            'nickname': member.name,
+            'time_on_voice_channel': 0,
+            'start_online_time': 0,
+            'end_online_time': 0,
+            'time_online': 0,
+            'time_away': 0,
+            'messages_sent': 0
+        }
+        collection.insert_one(query)
+    else:
+        print("User's in database")
 
 
 @client.event
 async def on_member_update(before, after):
-    guild_members_dict = {}
-    settings_cog = client.get_cog("SettingsCommands")
-    if settings_cog is not None:
-        guild_members_dict = await settings_cog.load_json_dict("JsonData/guild_members.json")
+    mongo_client = MongoClient(os.getenv('MONGOURL'))
+    db = mongo_client['Discord_Bot_Database']
+    collection = db['members']
     if after.activities and not before.activities:
         for after_activity in after.activities:
             if after_activity.type == discord.ActivityType.playing:
@@ -80,46 +98,33 @@ async def on_member_update(before, after):
 
     if str(before.status) == 'offline' and str(after.status) == 'online':
         print(f"{before.display_name} went online")
-        guild_members_dict[str(before.guild.id)][before.name]['start_online_time'] = datetime.now().replace(
-            microsecond=0)
-        with open("JsonData/guild_members.json", 'w') as file:
-            json.dump(guild_members_dict, file, indent=6, default=str)
-            file.close()
+        if collection.find_one({"_id": before.id}):
+            collection.update_one({"_id": before.id},
+                                  {"$set": {"start_online_time": datetime.now().replace(microsecond=0)}})
+
     if str(before.status) == 'online' and str(after.status) == 'offline':
         print(f"{before.display_name} went offline")
-        guild_members_dict[str(before.guild.id)][before.name]['end_online_time'] = datetime.now().replace(
-            microsecond=0)
-        with open("JsonData/guild_members.json", 'w') as file:
-            json.dump(guild_members_dict, file, indent=6, default=str)
-            file.close()
-        if guild_members_dict[str(before.guild.id)][before.name]['start_online_time']:
-            start_time = guild_members_dict[str(before.guild.id)][before.name]['start_online_time']
-            end_time = guild_members_dict[str(before.guild.id)][before.name]['end_online_time']
-            if not guild_members_dict[str(before.guild.id)][before.name]['time_online']:
-                final_time = "00:00:00"
-            else:
-                final_time = guild_members_dict[str(before.guild.id)][before.name]['time_online']
-            start_time = datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S')
-            final_time = datetime.strptime(final_time, '%H:%M:%S')
-            start_time_delta = timedelta(days=start_time.day,
-                                         hours=start_time.hour,
-                                         minutes=start_time.minute,
-                                         seconds=start_time.second)
-            end_time_delta = timedelta(days=end_time.day,
-                                       hours=end_time.hour,
-                                       minutes=end_time.minute,
-                                       seconds=end_time.second)
-            final_time_delta = timedelta(hours=final_time.hour,
-                                         minutes=final_time.minute,
-                                         seconds=final_time.second)
-            final_time_delta += end_time_delta - start_time_delta
-            guild_members_dict[str(before.guild.id)][before.name]['time_online'] = final_time_delta
-            print(final_time_delta)
-            with open("JsonData/guild_members.json", 'w') as file:
-                json.dump(guild_members_dict, file, indent=6, default=str)
-                file.close()
+        if collection.find_one({"_id": before.id}):
+            collection.update_one({"_id": before.id},
+                                  {"$set": {"end_online_time": datetime.now().replace(microsecond=0)}})
+        start_time = collection.find_one({"_id": before.id}, {"start_online_time": 1, "_id": 0})
+        if start_time['start_online_time'] == 0:
+            start_time = datetime.now().replace(microsecond=0)
+        end_time = collection.find_one({"_id": before.id}, {"end_online_time": 1, "_id": 0})
+        if end_time['end_online_time'] == 0:
+            end_time = datetime.now().replace(microsecond=0)
+        final_time = collection.find_one({"_id": before.id}, {"time_online": 1, "_id": 0})
+        if final_time['time_online'] == 0:
+            final_time['time_online'] = "00:00:00"
+            final_time['time_online'] = datetime.strptime("00:00:00", '%H:%M:%S')
+        final_time['time_online'] += (end_time['end_online_time'] - start_time['start_online_time'])
+        collection.update_one({"_id": before.id},
+                              {"$set": {"time_online": final_time['time_online']}})
+        print(f"{before.name} was online for {final_time['time_online'].second} seconds!")
+
     if str(before.status) == 'online' and str(after.status) == 'idle':
         print(f"{before.display_name} is away")
+
     if str(before.status) == 'idle' and str(after.status) == 'online':
         print(f"{before.display_name} is back")
 
