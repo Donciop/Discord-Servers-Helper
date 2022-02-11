@@ -1,3 +1,4 @@
+import pymongo
 from discord.ext import commands
 from pymongo import MongoClient
 import os
@@ -22,8 +23,17 @@ class SettingsCommands(commands.Cog):
         mongo_client = MongoClient(os.getenv('MONGOURL'))
         db = mongo_client[db]
         collection = db[collection]
-
         return collection
+
+    @commands.command()
+    async def lol_top(self, ctx):
+        settings_cog = self.client.get_cog("SettingsCommands")
+        if settings_cog is not None:
+            collection = await settings_cog.db_connection("Discord_Bot_Database", "members")
+        else:
+            collection = None
+        for member in collection.find().sort("league_time", pymongo.DESCENDING):
+            print(member)
 
     async def channel_check(self, ctx, channel_id):
         """

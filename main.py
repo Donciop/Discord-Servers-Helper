@@ -85,7 +85,8 @@ async def on_member_update(before, after):
         for after_activity in after.activities:
             if after_activity.type == discord.ActivityType.playing:
                 if after_activity.name == "League of Legends":
-                    if collection.find_one({"_id": before.id}):
+                    league_player = collection.find_one({"_id": before.id})
+                    if league_player is not None:
                         collection.update_one({"_id": after.id},
                                               {"$set": {"league_start_time": datetime.now().replace(microsecond=0)}})
                 print(f"{before.display_name} has started playing {after_activity.name}")
