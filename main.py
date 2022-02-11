@@ -18,10 +18,10 @@ slash = SlashCommand(client, sync_commands=True)
 
 # Loading cogs
 
-for filename in os.listdir("./Cogs"):
+for filename in os.listdir("./Cogs"):  # iterate over files in 'Cogs' dictionary
     print(filename)
     if filename.endswith(".py"):
-        client.load_extension(f"Cogs.{filename[:-3]}")
+        client.load_extension(f"Cogs.{filename[:-3]}")  # load cogs into bot
         print("Cog Loaded!")
 
 # Event handling
@@ -32,18 +32,21 @@ async def on_ready():
     """ Event handler that is called when bot is turned on. """
     print("Bot is ready")
     await client.change_presence(   # change the bot description on Discord member list
-      activity=discord.Activity(
-        type=discord.ActivityType.watching,  # get the "is watching ..." format
-        name="small servers *help"
-      )
+        activity=discord.Activity(
+            type=discord.ActivityType.watching,  # get the "is watching ..." format
+            name="small servers *help"
+        )
     )
 
 
 @client.event
 async def on_message(message):
-    mongo_client = MongoClient(os.getenv('MONGOURL'))
-    db = mongo_client['Discord_Bot_Database']
-    collection = db['members']
+    """ Event handler that is called when someone sends a message on discord channel """
+    settings_cog = client.get_cog("SettingsCommands")
+    if settings_cog is not None:
+        collection = await settings_cog.db_connection("Discord_Bot_Database", "members")
+    else:
+        collection = None
     collection.update_one(
         {"nickname": message.author.name},
         {"$inc": {"messages_sent": 1}}
@@ -159,16 +162,14 @@ async def reminder():
         await bot_channel.send("""
         It's high noon!
         
-        Please vote for my second bot, Discord Wordsy, so I could have Alak Kebab once a week
-        https://top.gg/bot/934989894995021866/vote
-        """)
+Please vote for my second bot, **Discord Wordsy**, so I could have Alak Kebab once a week.
+https://top.gg/bot/934989894995021866/vote""")
     if hour == 23 and minute == 00:
         await bot_channel.send("""
         It's midnight!
         
-        Please vote for my second bot, Discord Wordsy, so I could have Alak Kebab once a week
-        https://top.gg/bot/934989894995021866/vote
-        """)
+Please vote for my second bot, **Discord Wordsy**, so I could have Alak Kebab once a week.
+https://top.gg/bot/934989894995021866/vote""")
 
 
 @reminder.before_loop
@@ -201,4 +202,4 @@ async def on_command_error(ctx, error):
         return
 
 reminder.start()  # start tasks
-client.run(os.getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(os.getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN

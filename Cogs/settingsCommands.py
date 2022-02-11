@@ -1,4 +1,6 @@
 from discord.ext import commands
+from pymongo import MongoClient
+import os
 import json
 import asyncio
 
@@ -15,6 +17,13 @@ class SettingsCommands(commands.Cog):
             final_dict = json.loads(temp_dict)
             file.close()
         return final_dict
+
+    async def db_connection(self, db: str, collection: str):
+        mongo_client = MongoClient(os.getenv('MONGOURL'))
+        db = mongo_client[db]
+        collection = db[collection]
+
+        return collection
 
     async def channel_check(self, ctx, channel_id):
         """

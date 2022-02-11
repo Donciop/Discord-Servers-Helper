@@ -4,7 +4,7 @@ from discord_slash import cog_ext  # for slash commands
 from discord_slash.utils.manage_commands import create_option
 from riotwatcher import LolWatcher  # RIOT API wrapper
 import os
-
+from pymongo import MongoClient
 
 class LolCommands(commands.Cog):
     def __init__(self, client):
@@ -228,6 +228,42 @@ class LolCommands(commands.Cog):
             inline=True
         )
         await ctx.send(embed=embed)
+
+    @cog_ext.cog_slash(
+        name="lol_time",
+        description="Show member's online time on League of Legends",
+        guild_ids=[218510314835148802],
+        options=[
+            create_option(
+                name="member",
+                description="Select member!",
+                option_type=6,
+                required=True
+            )
+        ]
+    )
+    async def lol_time(self, ctx, member):
+        mongo_client = MongoClient(os.getenv('MONGOURL'))
+        db = mongo_client['Discord_Bot_Database']
+        collection = db['members']
+        if not collection.count_documents({"_id": member.id}):
+            await ctx.send(f"{member.mention} is a Bot, or isn't in our Database yet!")
+            return
+        time_online = collection.find_one({"_id": member.id}, {"league_time": 1})
+        if time_online['league_time'].second <= 0 or time_online['league_time'] == 0:
+            await ctx.send(f"{member.mention} hasn't played League of Legends")
+        elif time_online['league_time'].second > 0 and time_online['league_time'].minute < 1:
+            await ctx.send(
+                f"{member.mention} was playing League of Legends for **{time_online['league_time'].second}** seconds so far! (from 07.02.2022)")
+        elif time_online['league_time'].minute > 0 and time_online['league_time'].hour < 1:
+            await ctx.send(
+                f"{member.mention} was playing League of Legends for **{time_online['league_time'].minute}m {time_online['league_time'].second}s** so far! (from 07.02.2022)")
+        elif time_online['league_time'].hour > 0 and time_online['league_time'].day < 2:
+            await ctx.send(
+                f"{member.mention} was playing League of Legends for **{time_online['league_time'].hour}h {time_online['league_time'].minute}m {time_online['league_time'].second}s** so far! (from 07.02.2022)")
+        elif time_online['league_time'].day >= 2:
+            await ctx.send(
+                f"{member.mention} was playing League of Legends for **{time_online['league_time'].day}d {time_online['league_time'].hour}h {time_online['league_time'].minute}m {time_online['league_time'].second}s** so far! (from 07.02.2022)")
 
 
 def setup(client):  # adding cog to our main.py file
