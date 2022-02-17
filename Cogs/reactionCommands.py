@@ -12,18 +12,22 @@ class ReactionCommands(commands.Cog):
         member = await guild.fetch_member(payload.user_id)
         role = None
         # check if we react to desired message
-        if payload.channel_id == 748120165001986128 and payload.message_id == 884555735671918642:
+        if payload.channel_id == 943991100664852480 and payload.message_id == 943996472142225509:
             # switch-case for every emote / every role.
-            if str(payload.emoji) == "❌":
-                role = guild.get_role(877347765519253544)
-            if str(payload.emoji) == "1️⃣":
-                role = guild.get_role(757291879195738322)
-            if str(payload.emoji) == "2️⃣":
-                role = guild.get_role(815411542735847434)
-            if str(payload.emoji) == "3️⃣":
+            if str(payload.emoji) == "🔫":
                 role = guild.get_role(820002632822292491)
-            if str(payload.emoji) == "🎸":
-                role = guild.get_role(883802534580457522)
+            if str(payload.emoji) == "🔮":
+                role = guild.get_role(943982583954427994)
+            if str(payload.emoji) == "🚀":
+                role = guild.get_role(757291879195738322)
+            if str(payload.emoji) == "🦽":
+                role = guild.get_role(815411542735847434)
+            if str(payload.emoji) == "🇷":
+                role = guild.get_role(877347765519253544)
+            if str(payload.emoji) == "💍":
+                role = guild.get_role(933846670154793040)
+            if str(payload.emoji) == "🧱":
+                role = guild.get_role(898565007565021225)
             if role is not None:
                 await payload.member.add_roles(role)  # add role to member
                 print(f"Added {role} to {member}")
@@ -34,17 +38,21 @@ class ReactionCommands(commands.Cog):
         guild = await self.client.fetch_guild(payload.guild_id)
         member = await guild.fetch_member(payload.user_id)
         role = None
-        if payload.channel_id == 748120165001986128 and payload.message_id == 884555735671918642:
-            if str(payload.emoji) == "❌":
-                role = guild.get_role(877347765519253544)
-            if str(payload.emoji) == "1️⃣":
-                role = guild.get_role(757291879195738322)
-            if str(payload.emoji) == "2️⃣":
-                role = guild.get_role(815411542735847434)
-            if str(payload.emoji) == "3️⃣":
+        if payload.channel_id == 943991100664852480 and payload.message_id == 943996472142225509:
+            if str(payload.emoji) == "🔫":
                 role = guild.get_role(820002632822292491)
-            if str(payload.emoji) == "🎸":
-                role = guild.get_role(883802534580457522)
+            if str(payload.emoji) == "🔮":
+                role = guild.get_role(943982583954427994)
+            if str(payload.emoji) == "🚀":
+                role = guild.get_role(757291879195738322)
+            if str(payload.emoji) == "🦽":
+                role = guild.get_role(815411542735847434)
+            if str(payload.emoji) == "🇷":
+                role = guild.get_role(877347765519253544)
+            if str(payload.emoji) == "💍":
+                role = guild.get_role(933846670154793040)
+            if str(payload.emoji) == "🧱":
+                role = guild.get_role(898565007565021225)
             if role is not None:
                 await member.remove_roles(role)  # remove role from member
                 print(f"Removed {role} from {member}")
