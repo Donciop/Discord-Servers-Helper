@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord_slash import cog_ext  # for slash commands
 from discord_slash.model import SlashCommandPermissionType
 from discord_slash.utils.manage_commands import create_option, create_permission
+from Cogs.settingsCommands import SettingsCommands
 
 
 class ManageMessagesCommands(commands.Cog):
@@ -39,10 +40,15 @@ class ManageMessagesCommands(commands.Cog):
     )
     async def dc_count_messages(self, ctx, channel, member=None):
         """
-        Command used to count all messages in specific channel
-        :param ctx: passing context of the command
-        :param channel: discord's channel
-        :param member: discord's member
+        Command that is used to count all messages in specific channel
+
+            Args:
+                ctx: Context of the command
+                channel (discord.Channel): Discord Channel in which we want to count messages
+                member (:obj:discord.Member, optional): Discord Member from whom we want to count messages
+
+            Returns:
+                None
         """
         channel_check_cog = self.client.get_cog("SettingsCommands")
         channel_check = False
@@ -63,19 +69,73 @@ class ManageMessagesCommands(commands.Cog):
                 count += 1
             await ctx.send(f"There were {count} messages in {channel.mention}")
 
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    @commands.cooldown(1, 1, commands.BucketType.user)
+    async def save_attachments(self, ctx, channel: discord.TextChannel = None):
+        filetypes_video = ['mp4', 'mov', 'webm']
+        filetypes_img = ['jpg', 'jpeg', 'png']
+        filetypes_text = ['pdf', 'txt']
+        attachment_amount = counter = 0
+        if not channel:
+            channel = ctx.channel
+        async for msg in channel.history(limit=None):  # iterate over every message in channel's history
+            await SettingsCommands.create_attachments_dir(channel)
+            counter += 1
+            if not msg.attachments:
+                continue
+            for attachment in msg.attachments:
+                created_time = msg.created_at.strftime("%Y_%m_%d_%H_%M_%S")
+                internal_counter = 0
+                filetype_video_found = await SettingsCommands.get_filetype(filetypes=filetypes_video,
+                                                                           dir_name='Video',
+                                                                           attachment=attachment,
+                                                                           counter=counter,
+                                                                           internal_counter=internal_counter,
+                                                                           channel=channel, msg=msg,
+                                                                           created_time=created_time)
+                filetype_img_found = await SettingsCommands.get_filetype(filetypes=filetypes_img,
+                                                                         dir_name='Images',
+                                                                         attachment=attachment,
+                                                                         counter=counter,
+                                                                         internal_counter=internal_counter,
+                                                                         channel=channel, msg=msg,
+                                                                         created_time=created_time)
+                filetype_text_found = await SettingsCommands.get_filetype(filetypes=filetypes_text,
+                                                                          dir_name='Text',
+                                                                          attachment=attachment,
+                                                                          counter=counter,
+                                                                          internal_counter=internal_counter,
+                                                                          channel=channel, msg=msg,
+                                                                          created_time=created_time)
+                if not filetype_text_found and not filetype_img_found and not filetype_video_found:
+                    await SettingsCommands.get_filetype(
+                        dir_name='Uncategorized',
+                        attachment=attachment,
+                        counter=counter,
+                        internal_counter=internal_counter,
+                        channel=channel, msg=msg,
+                        created_time=created_time)
+                print(f'Attachment {attachment.filename} saved!')
+                attachment_amount += 1
+                internal_counter += 1
+        await ctx.send(f'Saved {attachment_amount} files!')
+
     @commands.command()  # decorator for discord.py commands
     @commands.has_permissions(manage_messages=True)  # check if user has permission to use that command
     @commands.cooldown(1, 1, commands.BucketType.user)  # assign cooldown for this command
-    async def clear(self, ctx, amount: int = 0):
+    async def clear(self, ctx, amount: int):
         """
-        Command used to delete specific amount of messages from discord's channel
-        :param ctx: passing context of the command
-        :param amount: amount of messages to delete
+        Command used to delete specific amount of messages from Discord Channel
+
+            Args:
+                ctx: Context of the command
+                amount (int): Amount of messages that will be deleted
+
+            Returns:
+                None
         """
-        if not amount:  # check if user specified number of messages
-            await ctx.send("Specify amount of messages to clear")
-            return  # return if amount of messages wasn't specified
-        elif amount > 20 or amount <= 0:  # check if number of messages is correct
+        if amount > 20 or amount < 0:  # check if number of messages is correct
             await ctx.send("Wrong amount of messages! (min: 1, max: 20)")
             return  # return if wrong number of messages was specified
         else:
@@ -86,13 +146,23 @@ class ManageMessagesCommands(commands.Cog):
     async def clear_error(self, ctx, error):
         """
         Error handling for 'clear' command
-        :param ctx: passing context of the command
-        :param error: discord.py error when executing command
+
+            Args:
+                ctx: Context of the command
+                error (discord.ext.commands.errors): Error that we're trying to catch
+
+            Returns:
+                None
         """
         if isinstance(error, commands.BadArgument):  # check if error's type is 'Bad Argument'
             embed = discord.Embed(color=0xeb1414)  # style embed message
-            embed.add_field(name="🛑 Clear Error", value="Wrong number of messages", inline=False)
+            embed.add_field(name='🛑 Clear Error', value='Number of messages must be an decimal number', inline=False)
             await ctx.send(embed=embed)  # send specific return message
+
+        if isinstance(error, commands.MissingRequiredArgument):
+            embed = discord.Embed(color=0xeb1414)
+            embed.add_field(name='🛑 Clear Error', value='You need to specify number of messages', inline=False)
+            await ctx.send(embed=embed)
 
 
 def setup(client):  # adding cog to our main.py file
