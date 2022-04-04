@@ -52,7 +52,7 @@ async def on_message(message: discord.Message):
     """
     collection = await SettingsCommands.db_connection("Discord_Bot_Database", "members")
     collection.update_one(
-        {"nickname": message.author.name},
+        {"_id": message.author.id},
         {"$inc": {"messages_sent": 1}}
     )
     await client.process_commands(message)
