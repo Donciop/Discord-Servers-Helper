@@ -1,8 +1,7 @@
 import discord
 from discord.ext import commands
 from discord_slash import cog_ext  # for slash commands
-from discord_slash.model import SlashCommandPermissionType
-from discord_slash.utils.manage_commands import create_option, create_permission
+from discord_slash.utils.manage_commands import create_option
 from Cogs.settingsCommands import SettingsCommands
 
 
@@ -13,16 +12,6 @@ class AdministratorCommands(commands.Cog):
     @cog_ext.cog_slash(  # slash command decorator
         name="msg_leaderboard",  # name that will be displayed in Discord
         description="Show the channel's leaderboard",  # description of the command
-        permissions={
-            218510314835148802: [
-              create_permission(545658751689031699, SlashCommandPermissionType.ROLE, True),
-              create_permission(748144455730593792, SlashCommandPermissionType.ROLE, False),
-              create_permission(826094492309258291, SlashCommandPermissionType.ROLE, False),
-              create_permission(541960938165764096, SlashCommandPermissionType.ROLE, False),
-              create_permission(541961631954108435, SlashCommandPermissionType.ROLE, False)
-            ]
-        },
-        guild_ids=[218510314835148802],  # list of server (guilds) id's that have access to this slash command
         options=[
             create_option(  # parameters in slash command
                 name="channel",  # name of the variable
@@ -32,6 +21,7 @@ class AdministratorCommands(commands.Cog):
             )
         ]
       )
+    @commands.has_permissions(administrator=True)
     async def top(self, ctx, channel):
         """
         Command used to check who send the highest amount of messages in specific channel
