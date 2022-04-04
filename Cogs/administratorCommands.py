@@ -12,6 +12,7 @@ class AdministratorCommands(commands.Cog):
     @cog_ext.cog_slash(  # slash command decorator
         name="msg_leaderboard",  # name that will be displayed in Discord
         description="Show the channel's leaderboard",  # description of the command
+        guild_ids=[218510314835148802],
         options=[
             create_option(  # parameters in slash command
                 name="channel",  # name of the variable

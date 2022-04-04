@@ -14,6 +14,7 @@ class ManageChannelsCommands(commands.Cog):
     @cog_ext.cog_slash(  # slash command decorator
         name="dc_mute",  # name that will be displayed in Discord
         description="Mute someone",  # description of the command
+        guild_ids=[218510314835148802],
         options=[
             create_option(  # parameters in slash command
                 name="member",  # name of the variable
@@ -54,6 +55,7 @@ class ManageChannelsCommands(commands.Cog):
     @cog_ext.cog_slash(  # slash command decorator
         name="dc_deaf",  # name that will be displayed in Discord
         description="Deafen someone",  # description of the command
+        guild_ids=[218510314835148802],
         options=[
             create_option(  # parameters in slash command
                 name="member",  # name of the variable

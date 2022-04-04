@@ -11,6 +11,7 @@ class ManageUsersCommands(commands.Cog):
     @cog_ext.cog_slash(  # slash command decorator
         name="dc_unban",  # name that will be displayed in Discord
         description="Unban specific member from this discord server",  # description of the command
+        guild_ids=[218510314835148802],
         options=[
             create_option(  # parameters in slash command
                 name="nickname",  # name of the variable

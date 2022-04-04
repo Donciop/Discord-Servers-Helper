@@ -37,23 +37,29 @@ class EverybodyCommands(commands.Cog):
         embed.add_field(
             name="📜 EVERYBODY",
             value="""   
-                  **★ `poke [@user]`**
+                  **★ `/dc_poke [@user]`**
                   
                   Moves user between voice channels to imitate TeamSpeak3's poke.
                   
-                  **★ `online [@role]`**
+                  **★ `/dc_online [@role]`**
                   
                   Shows online users with this role
                   
-                  **★ `keyword [word: str]`**
-                  
-                  Look for a specific word or words in last 1k messages and get jump URLs to them.
-                  Keyword has to be longer than 5 letters.
-                  
-                  **★ `bans`**
+                  **★ `/dc_bans`**
                   
                   Show banned users on this server
                   
+                  **★ `dc_stats_messages [@user]`**
+                  
+                  Shows how many messages has this Member sent
+                  
+                  **★ `dc_stats_online [@user]`**
+                  
+                  Shows for how long member has been online
+                  
+                  **★ `/top_members`**
+                  
+                  Show top members of this server based on messages sent
                   """,
             inline=False
         )
@@ -234,9 +240,9 @@ class EverybodyCommands(commands.Cog):
         await ctx.send(embed=embed)
 
     @cog_ext.cog_slash(
-      name="dc_bans",
-      description="Show banned users",
-      guild_ids=[218510314835148802]
+        name="dc_bans",
+        description="Show banned users",
+        guild_ids=[218510314835148802]
     )
     async def bans(self, ctx):
         """
