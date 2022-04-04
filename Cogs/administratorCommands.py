@@ -3,12 +3,14 @@ from discord.ext import commands
 from discord_slash import cog_ext  # for slash commands
 from discord_slash.model import SlashCommandPermissionType
 from discord_slash.utils.manage_commands import create_option, create_permission
+from Cogs.settingsCommands import SettingsCommands
 
 
 class AdministratorCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
 
+    @staticmethod
     @cog_ext.cog_slash(  # slash command decorator
         name="msg_leaderboard",  # name that will be displayed in Discord
         description="Show the channel's leaderboard",  # description of the command
@@ -31,11 +33,18 @@ class AdministratorCommands(commands.Cog):
             )
         ]
       )
-    async def top(self, ctx, channel):
-        channel_check = None
-        settings_cog = self.client.get_cog("SettingsCommands")
-        if settings_cog is not None:
-            channel_check = await settings_cog.channel_check(ctx, ctx.channel.id)
+    async def top(ctx, channel: discord.TextChannel):
+        """
+        Command used to check who send the highest amount of messages in specific channel
+
+            Args:
+                ctx: Context of the command
+                channel (discord.TextChannel): Discord Text Channel in which we want to count messages
+
+            Returns:
+                None
+        """
+        channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
         await ctx.defer()
