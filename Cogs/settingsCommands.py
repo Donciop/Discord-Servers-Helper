@@ -94,30 +94,6 @@ class SettingsCommands(commands.Cog):
             makedirs(f'{filepath}\\{channel.name}\\Images')
             return
 
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    @commands.cooldown(1, 1, commands.BucketType.user)
-    async def upload_members_to_database(self, ctx):
-        """
-        Utility method used to import server members into database
-
-            Args:
-                ctx: Context of the command
-
-            Returns:
-                None
-        """
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
-        for member in ctx.guild.members:
-            if member.bot:
-                continue
-            check = collection.find_one({'_id': member.id})
-            if not check:
-                collection.insert_one({'_id': member.id, 'messages_sent': 0})
-            else:
-                collection.update_one({'_id': member.id},
-                                      {'$set': {'messages_sent': 0}})
-
     @staticmethod
     async def save_attachment(*, filepath: str, counter: int,
                               channel: discord.TextChannel, msg: discord.Message):
