@@ -295,7 +295,17 @@ class EverybodyCommands(commands.Cog):
             )
         ]
     )
-    async def dc_stats_messages(self, ctx, member):
+    async def dc_stats_messages(self, ctx, member: discord.Member):
+        """
+        Command used to show how many messages the member has sent
+
+            Args:
+                ctx: Context of the command
+                member (discord.Member): Discord Member from whom we want to collect amount of messages
+
+            Returns:
+                None
+        """
         channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
@@ -323,6 +333,15 @@ class EverybodyCommands(commands.Cog):
         ]
     )
     async def dc_stats_online(self, ctx, member):
+        """
+        Command used to show for how long the member has been online
+
+            Args:
+                Context of the command
+
+            Returns:
+                None
+        """
         channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
@@ -360,17 +379,60 @@ class EverybodyCommands(commands.Cog):
     @cog_ext.cog_slash(
         name="top_members",
         description="Show who's the most active member on this Server!",
-        guild_ids=[218510314835148802],
+        guild_ids=[218510314835148802]
     )
     async def top_members(self, ctx):
+        """
+        Command used to show top members based on messages sent
+
+            Args:
+                ctx: Context of the command
+
+            Returns:
+                None
+        """
         channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
-        for member in collection.find().sort('messages_sent', DESCENDING).limit(10):
-            print(member['messages_sent'])
-            server_member = self.client.get_user(int(member['_id']))
-            print(server_member.name)
+        file = discord.File(  # creating file to send image along the embed message
+            "Media/trophy.png",  # file path to image
+            filename="image.png"  # name of the file
+        )
+        embed = discord.Embed(
+            color=0x11f80d,
+            description=f'Leaderboard of the most active users in {ctx.guild.name}',
+            title="🏆 Leaderboard 🏆"
+        )
+        embed.set_thumbnail(url="attachment://image.png")
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+        for iterator, user in enumerate(collection.find().sort('messages_sent', DESCENDING).limit(10)):
+            member = self.client.get_user(user['_id'])
+            if iterator <= 10 and user['messages_sent'] > 0:
+                if iterator == 0:
+                    embed.add_field(
+                        name=f"🥇 {iterator + 1}. {member.display_name}",
+                        value=f"{user['messages_sent']} messages",
+                        inline=False
+                    )
+                elif iterator == 1:
+                    embed.add_field(
+                        name=f"🥈 {iterator + 1}. {member.display_name}",
+                        value=f"{user['messages_sent']} messages",
+                        inline=False
+                    )
+                elif iterator == 2:
+                    embed.add_field(
+                        name=f"🥉 {iterator + 1}. {member.display_name}",
+                        value=f"{user['messages_sent']} messages",
+                        inline=False
+                    )
+                else:
+                    embed.add_field(
+                        name=f"{iterator + 1}. {member.display_name}",
+                        value=f"{user['messages_sent']} messages",
+                        inline=False
+                    )
+        await ctx.send(file=file, embed=embed)
 
 
 def setup(client):
