@@ -1,10 +1,10 @@
 import discord  # main packages
 from discord.ext import commands, tasks
 from discord_slash import SlashCommand  # for slash commands
-import os  # utility packages
+from os import listdir, getenv  # utility packages
 import datetime
 from datetime import datetime
-from pymongo import MongoClient
+from Cogs.settingsCommands import SettingsCommands
 
 # Making sure the bot has all the permissions
 
@@ -18,7 +18,7 @@ slash = SlashCommand(client, sync_commands=True)
 
 # Loading cogs
 
-for filename in os.listdir("./Cogs"):  # iterate over files in 'Cogs' dictionary
+for filename in listdir("./Cogs"):  # iterate over files in 'Cogs' dictionary
     print(filename)
     if filename.endswith(".py"):
         client.load_extension(f"Cogs.{filename[:-3]}")  # load cogs into bot
@@ -40,13 +40,17 @@ async def on_ready():
 
 
 @client.event
-async def on_message(message):
-    """ Event handler that is called when someone sends a message on discord channel """
-    settings_cog = client.get_cog("SettingsCommands")
-    if settings_cog is not None:
-        collection = await settings_cog.db_connection("Discord_Bot_Database", "members")
-    else:
-        collection = None
+async def on_message(message: discord.Message):
+    """
+    Event handler that is called when someone sends a message on discord channel
+
+        Args:
+            message (discord.Message): Discord Message
+
+        Returns:
+            None
+    """
+    collection = await SettingsCommands.db_connection("Discord_Bot_Database", "members")
     collection.update_one(
         {"nickname": message.author.name},
         {"$inc": {"messages_sent": 1}}
@@ -55,10 +59,17 @@ async def on_message(message):
 
 
 @client.event
-async def on_member_join(member):
-    mongo_client = MongoClient(os.getenv('MONGOURL'))
-    db = mongo_client['Discord_Bot_Database']
-    collection = db['members']
+async def on_member_join(member: discord.Member):
+    """
+    Event handler that is called when a new member joins a Discord Channel
+
+        Args:
+            member (discord.Member): Discord Member that joins Discord Server (Guild)
+
+        Returns:
+            None
+    """
+    collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
     check = collection.find_one({"_id": member.id})
     if not check:
         query = {
@@ -72,117 +83,91 @@ async def on_member_join(member):
             'messages_sent': 0
         }
         collection.insert_one(query)
-    else:
-        print("User's in database")
 
-
-@client.event
-async def on_member_update(before, after):
-    mongo_client = MongoClient(os.getenv('MONGOURL'))
-    db = mongo_client['Discord_Bot_Database']
-    collection = db['members']
-    if after.activities and not before.activities:
-        for after_activity in after.activities:
-            if after_activity.type == discord.ActivityType.playing:
-                if after_activity.name == "League of Legends":
-                    league_player = collection.find_one({"_id": before.id})
-                    if league_player is not None:
-                        collection.update_one({"_id": after.id},
-                                              {"$set": {"league_start_time": datetime.now().replace(microsecond=0)}})
-                print(f"{before.display_name} has started playing {after_activity.name}")
-            elif after_activity.type == discord.Game:
-                print(f"{before.display_name} has started playing {after_activity.name} at {after_activity.start}")
-            elif after_activity.type == discord.Spotify:
-                print(f"{before.display_name} has started to listen to Spotify.")
-
-    elif before.activities and not after.activities:
-        for before_activity in before.activities:
-            if before_activity.type == discord.ActivityType.playing:
-                if before_activity.name == "League of Legends":
-                    if collection.find_one({"_id": before.id}):
-                        collection.update_one({"_id": after.id},
-                                              {"$set": {"league_end_time": datetime.now().replace(microsecond=0)}})
-                        start_time = collection.find_one({"_id": before.id}, {"league_start_time": 1})
-                        end_time = collection.find_one({"_id": before.id}, {"league_end_time": 1})
-                        final_time = collection.find_one({"_id": before.id}, {"league_time": 1})
-                        if final_time['league_time'] == "00:00:00":
-                            final_time['league_time'] = datetime.strptime(final_time['league_time'], '%H:%M:%S')
-                        final_time['league_time'] += (end_time['league_end_time'] - start_time['league_start_time'])
-                        collection.update_one({"_id": before.id},
-                                              {"$set": {"league_time": final_time['league_time']}})
-                print(f"{before.display_name} stopped playing {before_activity.name}")
-            elif before_activity.type == discord.Game:
-                print(f"{before.display_name} stopped playing {before_activity.name}")
-            elif before_activity.type == discord.Spotify:
-                print(f"{before.display_name} stopped listening to Spotify.")
-
-    if str(before.status) == 'offline' and str(after.status) == 'online':
-        print(f"{before.display_name} went online")
-        if collection.find_one({"_id": before.id}):
-            collection.update_one({"_id": before.id},
-                                  {"$set": {"start_online_time": datetime.now().replace(microsecond=0)}})
-
-    if str(before.status) == 'online' and str(after.status) == 'offline':
-        print(f"{before.display_name} went offline")
-        if collection.find_one({"_id": before.id}):
-            collection.update_one({"_id": before.id},
-                                  {"$set": {"end_online_time": datetime.now().replace(microsecond=0)}})
-        start_time = collection.find_one({"_id": before.id}, {"start_online_time": 1, "_id": 0})
-        if start_time['start_online_time'] == 0:
-            start_time = datetime.now().replace(microsecond=0)
-        end_time = collection.find_one({"_id": before.id}, {"end_online_time": 1, "_id": 0})
-        if end_time['end_online_time'] == 0:
-            end_time = datetime.now().replace(microsecond=0)
-        final_time = collection.find_one({"_id": before.id}, {"time_online": 1, "_id": 0})
-        if final_time['time_online'] == 0:
-            final_time['time_online'] = "00:00:00"
-            final_time['time_online'] = datetime.strptime("00:00:00", '%H:%M:%S')
-        final_time['time_online'] += (end_time['end_online_time'] - start_time['start_online_time'])
-        collection.update_one({"_id": before.id},
-                              {"$set": {"time_online": final_time['time_online']}})
-
-    if str(before.status) == 'online' and str(after.status) == 'idle':
-        print(f"{before.display_name} is away")
-
-    if str(before.status) == 'idle' and str(after.status) == 'online':
-        print(f"{before.display_name} is back")
-
+# @client.event
+# async def on_member_update(before, after):
+#     collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
+#     if after.activities and not before.activities:
+#         for after_activity in after.activities:
+#             if after_activity.type == discord.ActivityType.playing:
+#                 if after_activity.name == "League of Legends":
+#                     league_player = collection.find_one({"_id": before.id})
+#                     if league_player is not None:
+#                         collection.update_one({"_id": after.id},
+#                                               {"$set": {"league_start_time": datetime.now().replace(microsecond=0)}})
+#                 print(f"{before.display_name} has started playing {after_activity.name}")
+#             elif after_activity.type == discord.Game:
+#                 print(f"{before.display_name} has started playing {after_activity.name} at {after_activity.start}")
+#             elif after_activity.type == discord.Spotify:
+#                 print(f"{before.display_name} has started to listen to Spotify.")
+#
+#     elif before.activities and not after.activities:
+#         for before_activity in before.activities:
+#             if before_activity.type == discord.ActivityType.playing:
+#                 if before_activity.name == "League of Legends":
+#                     if collection.find_one({"_id": before.id}):
+#                         collection.update_one({"_id": after.id},
+#                                               {"$set": {"league_end_time": datetime.now().replace(microsecond=0)}})
+#                         start_time = collection.find_one({"_id": before.id}, {"league_start_time": 1})
+#                         end_time = collection.find_one({"_id": before.id}, {"league_end_time": 1})
+#                         final_time = collection.find_one({"_id": before.id}, {"league_time": 1})
+#                         if final_time['league_time'] == "00:00:00":
+#                             final_time['league_time'] = datetime.strptime(final_time['league_time'], '%H:%M:%S')
+#                         final_time['league_time'] += (end_time['league_end_time'] - start_time['league_start_time'])
+#                         collection.update_one({"_id": before.id},
+#                                               {"$set": {"league_time": final_time['league_time']}})
+#                 print(f"{before.display_name} stopped playing {before_activity.name}")
+#             elif before_activity.type == discord.Game:
+#                 print(f"{before.display_name} stopped playing {before_activity.name}")
+#             elif before_activity.type == discord.Spotify:
+#                 print(f"{before.display_name} stopped listening to Spotify.")
+#
+#     if str(before.status) == 'offline' and str(after.status) == 'online':
+#         print(f"{before.display_name} went online")
+#         if collection.find_one({"_id": before.id}):
+#             collection.update_one({"_id": before.id},
+#                                   {"$set": {"start_online_time": datetime.now().replace(microsecond=0)}})
+#
+#     if str(before.status) == 'online' and str(after.status) == 'offline':
+#         print(f"{before.display_name} went offline")
+#         if collection.find_one({"_id": before.id}):
+#             collection.update_one({"_id": before.id},
+#                                   {"$set": {"end_online_time": datetime.now().replace(microsecond=0)}})
+#         start_time = collection.find_one({"_id": before.id}, {"start_online_time": 1, "_id": 0})
+#         if start_time['start_online_time'] == 0:
+#             start_time = datetime.now().replace(microsecond=0)
+#         end_time = collection.find_one({"_id": before.id}, {"end_online_time": 1, "_id": 0})
+#         if end_time['end_online_time'] == 0:
+#             end_time = datetime.now().replace(microsecond=0)
+#         final_time = collection.find_one({"_id": before.id}, {"time_online": 1, "_id": 0})
+#         if final_time['time_online'] == 0:
+#             final_time['time_online'] = "00:00:00"
+#             final_time['time_online'] = datetime.strptime("00:00:00", '%H:%M:%S')
+#         final_time['time_online'] += (end_time['end_online_time'] - start_time['start_online_time'])
+#         collection.update_one({"_id": before.id},
+#                               {"$set": {"time_online": final_time['time_online']}})
+#
+#     if str(before.status) == 'online' and str(after.status) == 'idle':
+#         print(f"{before.display_name} is away")
+#
+#     if str(before.status) == 'idle' and str(after.status) == 'online':
+#         print(f"{before.display_name} is back")
 
 # Tasks
 
 
-@tasks.loop(minutes=1)  # task called every minute
-async def reminder():
-    """ Function that is responsible for checking time and is called every 12 AM. """
-    current_time = datetime.now()  # get current time
-    hour = current_time.hour
-    minute = current_time.minute
-
-    bot_channel = client.get_channel(796794980810620948)  # check if we're sending message in right channel
-    if hour == 11 and minute == 00:
-        await bot_channel.send("""
-        It's high noon!
-        
-Please vote for my second bot, **Discord Wordsy**, so I could have Alak Kebab once a week.
-https://top.gg/bot/934989894995021866/vote""")
-    if hour == 23 and minute == 00:
-        await bot_channel.send("""
-        It's midnight!
-        
-Please vote for my second bot, **Discord Wordsy**, so I could have Alak Kebab once a week.
-https://top.gg/bot/934989894995021866/vote""")
-
-
-@reminder.before_loop
-async def before():  # wait for bot to go online to start the task
-    await client.wait_until_ready()
-
-# Error handling
-
-
 @client.event
 async def on_command_error(ctx, error):
-    """ Error handling for exceptions when using commands. Called when bot encounters an error. """
+    """
+    Error handling for exceptions when using commands. Called when bot encounters an error.
+
+        Args:
+            ctx: Context of the command
+            error (discord.ext.commands.errors): Error that we're trying to catch
+
+        Returns:
+            None
+    """
     if isinstance(error, commands.CommandOnCooldown):  # called when you try to use command that is on cooldown.
         embed = discord.Embed(color=0xeb1414)  # Discord embed formatting
         embed.add_field(
@@ -192,6 +177,7 @@ async def on_command_error(ctx, error):
         )
         await ctx.send(embed=embed)  # send the embed
         return
+
     if isinstance(error, commands.MissingPermissions):  # called when you don't have permission to use that command.
         embed = discord.Embed(color=0xeb1414)
         embed.add_field(
@@ -202,5 +188,30 @@ async def on_command_error(ctx, error):
         await ctx.send(embed=embed)
         return
 
+
+@tasks.loop(minutes=1)  # task called every minute
+async def reminder():
+    """ Task that is responsible for checking time and is called every 12 hours. """
+    current_time = datetime.now()  # get current time
+    bot_channel = client.get_channel(796794980810620948)  # check if we're sending message in right channel
+    if current_time.hour == 12 and current_time.minute == 00:
+        await bot_channel.send("""
+        It's high noon!
+
+Please vote for my second bot, **Discord Wordsy**, so I could have Alak Kebab once a week.
+https://top.gg/bot/934989894995021866/vote""")
+    if current_time == 24 and current_time.minute == 00:
+        await bot_channel.send("""
+        It's midnight!
+
+Please vote for my second bot, **Discord Wordsy**, so I could have Alak Kebab once a week.
+https://top.gg/bot/934989894995021866/vote""")
+
+
+@reminder.before_loop
+async def before():  # wait for bot to go online to start the task
+    await client.wait_until_ready()
+
+
 reminder.start()  # start tasks
-client.run(os.getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
