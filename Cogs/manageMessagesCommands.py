@@ -70,56 +70,35 @@ class ManageMessagesCommands(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.cooldown(1, 1, commands.BucketType.user)
     async def save_attachments(self, ctx, channel: discord.TextChannel = None):
+        """
+        Command used to save attachments from all messages from specific channel
+
+            Args:
+                ctx: Context of the command
+                channel (:obj:discord.Channel, optional): Discord Channel in which we want to save attachments
+
+            Returns:
+                None
+        """
         channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
-        filetypes_video = ['mp4', 'mov', 'webm']
-        filetypes_img = ['jpg', 'jpeg', 'png']
-        filetypes_text = ['pdf', 'txt']
-        attachment_amount = counter = 0
+        attachment_saved_amount = attachment_failed_to_save_amount = counter = 0
         if not channel:
             channel = ctx.channel
+        filepath = 'E:\\Discord Attachments'
         async for msg in channel.history(limit=None):  # iterate over every message in channel's history
-            await SettingsCommands.create_attachments_dir(channel)
-            counter += 1
             if not msg.attachments:
                 continue
-            for attachment in msg.attachments:
-                created_time = msg.created_at.strftime("%Y_%m_%d_%H_%M_%S")
-                internal_counter = 0
-                filetype_video_found = await SettingsCommands.get_filetype(filetypes=filetypes_video,
-                                                                           dir_name='Video',
-                                                                           attachment=attachment,
-                                                                           counter=counter,
-                                                                           internal_counter=internal_counter,
-                                                                           channel=channel, msg=msg,
-                                                                           created_time=created_time)
-                filetype_img_found = await SettingsCommands.get_filetype(filetypes=filetypes_img,
-                                                                         dir_name='Images',
-                                                                         attachment=attachment,
-                                                                         counter=counter,
-                                                                         internal_counter=internal_counter,
-                                                                         channel=channel, msg=msg,
-                                                                         created_time=created_time)
-                filetype_text_found = await SettingsCommands.get_filetype(filetypes=filetypes_text,
-                                                                          dir_name='Text',
-                                                                          attachment=attachment,
-                                                                          counter=counter,
-                                                                          internal_counter=internal_counter,
-                                                                          channel=channel, msg=msg,
-                                                                          created_time=created_time)
-                if not filetype_text_found and not filetype_img_found and not filetype_video_found:
-                    await SettingsCommands.get_filetype(
-                        dir_name='Uncategorized',
-                        attachment=attachment,
-                        counter=counter,
-                        internal_counter=internal_counter,
-                        channel=channel, msg=msg,
-                        created_time=created_time)
-                print(f'Attachment {attachment.filename} saved!')
-                attachment_amount += 1
-                internal_counter += 1
-        await ctx.send(f'Saved {attachment_amount} files!')
+            attachment_saved = await SettingsCommands.save_attachment(counter=counter, filepath=filepath,
+                                                                      channel=channel, msg=msg)
+            if attachment_saved:
+                attachment_saved_amount += 1
+            else:
+                attachment_failed_to_save_amount += 1
+            counter += 1
+        await ctx.send(f'Saved {attachment_saved_amount} files!\n'
+                       f'Failed to save {attachment_failed_to_save_amount} files')
 
     @commands.command()  # decorator for discord.py commands
     @commands.has_permissions(manage_messages=True)  # check if user has permission to use that command
