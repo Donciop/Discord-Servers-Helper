@@ -3,6 +3,8 @@ from discord.ext import commands
 from discord_slash import cog_ext  # for slash commands
 from discord_slash.utils.manage_commands import create_option
 from Cogs.settingsCommands import SettingsCommands
+import cProfile
+import pstats
 
 
 class AdministratorCommands(commands.Cog):
@@ -39,12 +41,11 @@ class AdministratorCommands(commands.Cog):
             return
         await ctx.defer()
         leaderboard_not_sorted = {}
-        for member in channel.members:
-            counter = 0
-            async for msg in channel.history(limit=None):
-                if msg.author == member:
-                    counter += 1
-            leaderboard_not_sorted[f"{str(member.display_name)}#{str(member.discriminator)}"] = counter
+        async for msg in channel.history(limit=None):
+            if str(msg.author.display_name) in leaderboard_not_sorted:
+                leaderboard_not_sorted[str(msg.author.display_name)] += 1
+            else:
+                leaderboard_not_sorted[str(msg.author.display_name)] = 1
         leaderboard_sorted = sorted(leaderboard_not_sorted.items(), key=lambda x: x[1], reverse=True)
         iterator = 1
         file = discord.File(  # creating file to send image along the embed message
