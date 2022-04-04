@@ -50,10 +50,7 @@ class ManageMessagesCommands(commands.Cog):
             Returns:
                 None
         """
-        channel_check_cog = self.client.get_cog("SettingsCommands")
-        channel_check = False
-        if channel_check_cog is not None:
-            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
         await ctx.defer()
@@ -73,6 +70,9 @@ class ManageMessagesCommands(commands.Cog):
     @commands.has_permissions(administrator=True)
     @commands.cooldown(1, 1, commands.BucketType.user)
     async def save_attachments(self, ctx, channel: discord.TextChannel = None):
+        channel_check = await SettingsCommands.channel_check(ctx)
+        if not channel_check:
+            return
         filetypes_video = ['mp4', 'mov', 'webm']
         filetypes_img = ['jpg', 'jpeg', 'png']
         filetypes_text = ['pdf', 'txt']
