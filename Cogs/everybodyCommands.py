@@ -11,11 +11,6 @@ class EverybodyCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        self.owner = self.client.get_user(198436287848382464)
-        self.guild = self.client.get_guild(218510314835148802)
-
     @cog_ext.cog_slash(
         name="help",
         description="Show information about commands",
@@ -115,7 +110,7 @@ class EverybodyCommands(commands.Cog):
                   """,
             inline=False
         )
-        embed.set_footer(text=f"Copyrighted by {self.owner.name} #{self.owner.discriminator}")
+        embed.set_footer(text=f"Copyrighted by {ctx.guild.owner.name} #{ctx.guild.owner.discriminator}")
         await ctx.send(embed=embed)
 
     @cog_ext.cog_slash(
@@ -228,12 +223,12 @@ class EverybodyCommands(commands.Cog):
                 inline=False
             )
             user_channel = member.voice.channel
-            if member.voice.channel == self.guild.afk_channel:
+            if member.voice.channel == ctx.guild.afk_channel:
                 await member.move_to(user_channel)
                 await sleep(2)
-                await member.move_to(self.guild.afk_channel)
+                await member.move_to(ctx.guild.afk_channel)
             else:
-                await member.move_to(self.guild.afk_channel)
+                await member.move_to(ctx.guild.afk_channel)
                 await sleep(2)
                 await member.move_to(user_channel)
         await ctx.send(embed=embed)
@@ -256,14 +251,14 @@ class EverybodyCommands(commands.Cog):
         channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
-        banned_users = await self.guild.bans()
+        banned_users = await ctx.guild.bans()
         embed = discord.Embed(
           color=0xeb1414,
           title="👮‍♂ BANNED USERS 👮‍♂",
           description="For advanced information, ask administration or moderators."
         )
         audit_logs = {}
-        async for entry in self.guild.audit_logs(action=discord.AuditLogAction.ban, limit=None):
+        async for entry in ctx.guild.audit_logs(action=discord.AuditLogAction.ban, limit=None):
             audit_logs[entry.target.name] = entry.user.name
         for banEntry in banned_users:
             if str(banEntry.user.name) in audit_logs:
