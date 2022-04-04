@@ -2,6 +2,7 @@ from discord.ext import commands  # main packages
 from discord_slash import cog_ext  # for slash commands
 from discord_slash.model import SlashCommandPermissionType
 from discord_slash.utils.manage_commands import create_option, create_permission
+from Cogs.settingsCommands import SettingsCommands
 
 
 class ManageUsersCommands(commands.Cog):
@@ -39,14 +40,13 @@ class ManageUsersCommands(commands.Cog):
     async def unban(self, ctx, nickname, discriminator):
         """
         Command used to un-ban members that are banned on server (guild)
-        :param ctx: passing context of the command
-        :param nickname: Discord's nickname
-        :param discriminator: Discord's discriminator (for ex. #1234)
+
+            Args:
+                ctx: Context of the command
+                nickname (str): Nickname of the person we want to unban
+                discriminator (str): Discord discriminator that is used after every nickname
         """
-        channel_check_cog = self.client.get_cog("SettingsCommands")
-        channel_check = False
-        if channel_check_cog is not None:
-            channel_check = await channel_check_cog.channel_check(ctx, ctx.channel.id)
+        channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
         banned_users = await ctx.guild.bans()  # access banned users of that discord server
