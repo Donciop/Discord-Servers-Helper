@@ -10,7 +10,6 @@ class AdministratorCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @staticmethod
     @cog_ext.cog_slash(  # slash command decorator
         name="msg_leaderboard",  # name that will be displayed in Discord
         description="Show the channel's leaderboard",  # description of the command
@@ -33,7 +32,7 @@ class AdministratorCommands(commands.Cog):
             )
         ]
       )
-    async def top(ctx, channel: discord.TextChannel):
+    async def top(self, ctx, channel):
         """
         Command used to check who send the highest amount of messages in specific channel
 
