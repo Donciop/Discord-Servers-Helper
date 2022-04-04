@@ -1,9 +1,12 @@
 from discord.ext import commands
 from pymongo import MongoClient
+from os import getenv, makedirs, path
+from asyncio import sleep
 import discord
-import os
-import json
-import asyncio
+from json import loads
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 
 class SettingsCommands(commands.Cog):
@@ -14,13 +17,12 @@ class SettingsCommands(commands.Cog):
     async def load_json_dict(filepath: str):
         with open(filepath) as file:
             temp_dict = file.read()
-            final_dict = json.loads(temp_dict)
-            file.close()
+            final_dict = loads(temp_dict)
         return final_dict
 
     @staticmethod
     async def db_connection(db: str, collection: str):
-        mongo_client = MongoClient(os.getenv('MONGOURL'))
+        mongo_client = MongoClient(getenv('MONGOURL'))
         db = mongo_client[db]
         collection = db[collection]
         return collection
@@ -49,62 +51,97 @@ class SettingsCommands(commands.Cog):
         # sends specific message if command is used in forbidden channel
         if not channel_check:
             await ctx.channel.send(f'Please, use bot commands in bot channel to prevent spam')
-            await asyncio.sleep(2)
+            await sleep(2)
             await ctx.channel.purge(limit=1)
         return channel_check
 
     @staticmethod
-    async def create_attachments_dir(channel: discord.TextChannel):
+    async def create_attachments_dir(*, filepath: str, channel: discord.TextChannel):
         """
         Utility method used to create specific directory when using *save_attachments command
 
             Args:
+                filepath (str): Filepath to the directory that we want to create our subdirectory
                 channel (discord.Channel): Discord Text Channel in which we want to save attachments
 
             Returns:
                 None
         """
-        exists = os.path.exists(f'{channel.name}')
+        exists = path.exists(f'{filepath}\\{channel.name}')
         if not exists:
-            os.makedirs(f'{channel.name}/Attachments/Video')
-            os.makedirs(f'{channel.name}/Attachments/Text')
-            os.makedirs(f'{channel.name}/Attachments/Uncategorized')
-            os.makedirs(f'{channel.name}/Attachments/Images')
+            makedirs(f'{filepath}\\{channel.name}\\Video')
+            makedirs(f'{filepath}\\{channel.name}\\Text')
+            makedirs(f'{filepath}\\{channel.name}\\Uncategorized')
+            makedirs(f'{filepath}\\{channel.name}\\Images')
+            return
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    @commands.cooldown(1, 1, commands.BucketType.user)
+    async def upload_members_to_database(self, ctx):
+        """
+        Utility method used to import server members into database
+
+            Args:
+                ctx: Context of the command
+
+            Returns:
+                None
+        """
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+        for member in ctx.guild.members:
+            if member.bot:
+                continue
+            check = collection.find_one({'_id': member.id})
+            if not check:
+                collection.insert_one({'_id': member.id, 'messages_sent': 0})
+            else:
+                collection.update_one({'_id': member.id},
+                                      {'$set': {'messages_sent': 0}})
 
     @staticmethod
-    async def get_filetype(*, filetypes: list = None, dir_name: str, attachment: discord.Attachment, counter: int,
-                           internal_counter: int,
-                           channel: discord.TextChannel, msg: discord.Message, created_time: str):
+    async def save_attachment(*, filepath: str, counter: int,
+                              channel: discord.TextChannel, msg: discord.Message):
         """
         Utility method used to categorize Attachments sent to channels
 
             Args:
-                filetypes (:obj:'list', optional): List of filetypes that we're looking for
-                dir_name (str): Name of the subdirectory that we want to save our files in
-                attachment (discord.Attachment): Discord attachment that we want to save
+                filepath (str): Filepath to the directory that we want to save our files in
                 counter (int):  Number of attachment that we're trying to save
-                internal_counter (int): If there's more than one attachment in message,
-                                        we separate them by internal counters
                 channel (discord.Channel): Discord Channel in which we're saving attachments
                 msg (discord.Message): Discord Message that contains our attachment
-                created_time (str): Date, which tells us, when the message was created
 
             Returns:
                 bool: True if successful, False otherwise
         """
-        if not filetypes:
-            dir_name = 'Uncategorized'
-        for filetype in filetypes:
-            if attachment.filename.lower().endswith(filetype):
+
+        filetypes = {'Images': ['jpg', 'jpeg', 'png'],
+                     'Video': ['mp4', 'mov', 'webm'],
+                     'Text': ['pdf', 'txt']}
+        created_time = msg.created_at.strftime("%Y_%m_%d_%H_%M_%S")
+        await SettingsCommands.create_attachments_dir(filepath=filepath, channel=channel)
+        filetype_found = False
+        for i_counter, attachment in enumerate(msg.attachments):
+            for category, category_filetypes in filetypes.items():
+                for filetype in category_filetypes:
+                    if attachment.filename.lower().endswith(filetype):
+                        fp = f'{filepath}\\{channel.name}\\{category}\\{counter}' \
+                             f'_{i_counter}_{msg.author.name}_{created_time}.{filetype}'
+                        exists = path.exists(f'{filepath}\\{channel.name}')
+                        if not exists:
+                            return False
+                        try:
+                            await attachment.save(fp=fp)
+                            return True
+                        except discord.HTTPException:
+                            return False
+            if not filetype_found:
                 try:
-                    await attachment.save(
-                        f'{channel.name}/Attachments/{dir_name}/{counter}'
-                        f'_{internal_counter}'
-                        f'_{msg.author.name}'
-                        f'_{created_time}.{filetype}')
+                    fp = f'{filepath}\\{channel.name}\\Uncategorized\\{counter}' \
+                         f'_{i_counter}_{msg.author.name}_{created_time}.{str(attachment.filename)[:-5]}'
+                    await attachment.save(fp=fp)
                     return True
                 except discord.HTTPException:
-                    print('Cannot save attachment')
                     return False
 
 
