@@ -15,6 +15,15 @@ class SettingsCommands(commands.Cog):
 
     @staticmethod
     async def load_json_dict(filepath: str):
+        """
+        Utility method that is used to load .json files as Python dictionaries
+
+            Args:
+                filepath (str): File path to desired .json file
+
+            Returns:
+                final_dict (dict): Dictionary contains passed .json file
+        """
         with open(filepath) as file:
             temp_dict = file.read()
             final_dict = loads(temp_dict)
@@ -22,6 +31,16 @@ class SettingsCommands(commands.Cog):
 
     @staticmethod
     async def db_connection(db: str, collection: str):
+        """
+        Utility method that is used to connect to the MongoDB Database
+
+            Args:
+                db (str): Name of the Database
+                collection (str): Name of the Collection in Database
+
+            Returns:
+                collection: Collection from the Database
+        """
         mongo_client = MongoClient(getenv('MONGOURL'))
         db = mongo_client[db]
         collection = db[collection]
