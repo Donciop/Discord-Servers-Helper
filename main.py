@@ -50,7 +50,7 @@ async def on_message(message: discord.Message):
         Returns:
             None
     """
-    collection = await SettingsCommands.db_connection("Discord_Bot_Database", "members")
+    collection = await SettingsCommands.db_connection("Discord_Bot_Database", "new_members")
     collection.update_one(
         {"_id": message.author.id},
         {"$inc": {"messages_sent": 1}}
@@ -69,17 +69,11 @@ async def on_member_join(member: discord.Member):
         Returns:
             None
     """
-    collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
+    collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
     check = collection.find_one({"_id": member.id})
     if not check:
         query = {
             '_id': member.id,
-            'nickname': member.name,
-            'time_on_voice_channel': 0,
-            'start_online_time': 0,
-            'end_online_time': 0,
-            'time_online': 0,
-            'time_away': 0,
             'messages_sent': 0
         }
         collection.insert_one(query)
