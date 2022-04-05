@@ -3,8 +3,6 @@ from discord.ext import commands
 from discord_slash import cog_ext  # for slash commands
 from discord_slash.utils.manage_commands import create_option
 from Cogs.settingsCommands import SettingsCommands
-import cProfile
-import pstats
 
 
 class AdministratorCommands(commands.Cog):
@@ -100,7 +98,9 @@ class AdministratorCommands(commands.Cog):
             Returns:
                 None
         """
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members', ctx=ctx)
+        if collection is None:
+            return
         for member in ctx.guild.members:
             if member.bot:
                 continue
