@@ -1,11 +1,11 @@
 import discord  # main packages
-import pymongo
+from pymongo import DESCENDING
+from os import getenv
 from discord.ext import commands
 from discord_slash import cog_ext  # for slash commands
 from discord_slash.utils.manage_commands import create_option
-from riotwatcher import TftWatcher  # RIOT API wrapper
 from Cogs.settingsCommands import SettingsCommands
-import os
+from riotwatcher import TftWatcher
 
 
 class TftCommands(commands.Cog):
@@ -18,41 +18,6 @@ class TftCommands(commands.Cog):
         self.penguFilepath = "Media/Pengu_TFT.png"  # filepaths for files send with Discord embeds
         self.tftIconFilepath = "Media/Teamfight_Tactics_icon.png"
         self.tftEmoji = "<:TFT:912917249923375114>"  # reference to custom Discord emoji
-        self.region = 'eun1'  # used in Riotwatcher to determine which region we're looking for
-        self.watcher = TftWatcher(os.getenv('APIKEYTFT'))  # RIOT API KEY
-
-    @staticmethod
-    async def rank_check(summoner_rank: dict):
-        """
-        Method that checks player's rank and return specific information for further usage
-
-            Args:
-                summoner_rank (dict): Dictionary from RiotWatcher containing information about player's ranking
-
-            Returns:
-                tier_emoji: custom emoji based on player's rank
-                rank (int): calculated rating for local leaderboard
-        """
-        rank_dict = await SettingsCommands.load_json_dict("JsonData/rankDict.json")
-        tier_emoji = ''
-        tier_list = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
-        rank_list = ["IV", "III", "II", "I"]
-        q_type = rank = 0
-        if summoner_rank[0]['queueType'] == 'RANKED_TFT_TURBO':  # check if we're getting data from desired queue type
-            q_type = 1
-        for tier in tier_list:  # iterate over every tier until we find player's tier
-            if summoner_rank[q_type]['tier'] != tier:
-                rank += 400
-            else:
-                tier_emoji = rank_dict[tier]
-                break
-        for localRank in rank_list:  # iterate over every rank until we find player's rank
-            if summoner_rank[q_type]['rank'] != localRank:
-                rank += 100
-            else:
-                break
-        rank += summoner_rank[q_type]['leaguePoints']  # calculate final rating for leaderboard
-        return tier_emoji, rank
 
     @cog_ext.cog_slash(  # slash command decorator in cog
         name="tft_rank",  # name that will be displayed in Discord
@@ -82,46 +47,47 @@ class TftCommands(commands.Cog):
         if not channel_check:
             return
 
-        # access data about specific player from RIOT API
-        summoner = self.watcher.summoner.by_name(self.region, nickname)
-        if not summoner:  # check if the player actually exists
-            await ctx.send(f"Can't find **{nickname}** on EUNE server.")
-            return  # return if player's not found
+        # access data about specific player from RIOT API for later operations
+        summoner, summoner_stats = await SettingsCommands.get_riot_stats(ctx, stats_type='TFT', nickname=nickname)
 
-        # access data about player's rank
-        summoner_tft_stats = self.watcher.league.by_summoner(self.region, summoner['id'])
-        if not summoner_tft_stats:  # check if player has rank on Teamfight Tactics
-            await ctx.send(f"Player **{nickname}** is unranked on TFT")
-            return  # return if player's unranked
+        if not summoner_stats:
+            return
 
-        title_nickname = nickname.lower()  # nickname operations for accessing the lolchess.gg website
+        # nickname operations to access lolchess.gg
+        title_nickname = nickname.lower()
         title_nickname = title_nickname.replace(" ", "")
-        embed = discord.Embed(  # styling Discord embed message
+
+        # styling Discord embed message
+        embed = discord.Embed(
             color=0x11f80d,  # color of the embed message
             title=f"🎲 Teamfight Tactics {nickname}'s Rank 🎲",  # title of the embed message
             description="Click the title for advanced information",  # description of the embed message
             url=f"https://lolchess.gg/profile/eune/{title_nickname}"
         )
 
-        file = discord.File(  # creating file to send image along the embed message
+        # creating file to send image along the embed message
+        file = discord.File(
             self.penguFilepath,  # file path to image
             filename="image.png"  # name of the file
         )
 
-        embed.set_thumbnail(url="attachment://image.png")  # setting emebed's thumbnail
+        # setting embed message thumbnail
+        embed.set_thumbnail(url="attachment://image.png")
 
-        # get player's rank and rating for leaderboard
-        tier_emoji, rank = await self.rank_check(summoner_tft_stats)
-        q_type = 0
-        if summoner_tft_stats[0]['queueType'] == 'RANKED_TFT_TURBO':  # check if we're processing right queue type
-            q_type = 1
-        # adding fields to embed message that contains rank , winrate, amounts of matches played and league points owned
+        # get player's rating to print out
+        tier_emoji = await SettingsCommands.riot_rank_check(summoner_stats, rank=False)
+
+        # basic math to calculate player's win ratio and amount of matches played, that are going to be printed out
+        win_ratio = round((summoner_stats['wins']/(summoner_stats['wins']+summoner_stats['losses']))*100)
+        amount_of_matches = summoner_stats['wins'] + summoner_stats['losses']
+
+        # adding fields to embed message that contains rank, win rate,
+        # amounts of matches played and league points currently owned
         embed.add_field(
             name="RANKED",
-            value=f"""
-        {tier_emoji} {summoner_tft_stats[q_type]['tier']} {summoner_tft_stats[q_type]['rank']} | {summoner_tft_stats[q_type]['leaguePoints']} LP
-        **{round((summoner_tft_stats[q_type]['wins'] / (summoner_tft_stats[q_type]['wins'] + summoner_tft_stats[q_type]['losses'])) * 100)}%** top 1 ratio ({summoner_tft_stats[q_type]['wins'] + summoner_tft_stats[q_type]['losses']} Matches)
-        """)
+            value=f"{tier_emoji} {summoner_stats['tier']} {summoner_stats['rank']} | "
+                  f"{summoner_stats['leaguePoints']} LP\n"
+                  f"**{win_ratio}%** top 1 ratio ({amount_of_matches}) Matches")
         await ctx.send(file=file, embed=embed)
 
     @cog_ext.cog_slash(
@@ -149,46 +115,32 @@ class TftCommands(commands.Cog):
                 None
         """
         channel_check = await SettingsCommands.channel_check(ctx)
-        collection = await SettingsCommands.db_connection("Discord_Bot_Database", "tft_players")
-        if not channel_check:
-            return
-        if collection is None:
-            await ctx.send("Failed to connect to Database :(")
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'tft_players', ctx=ctx)
+        if collection is None or not channel_check:
             return
 
-        summoner = self.watcher.summoner.by_name(self.region, nickname)
-        if not summoner:
-            await ctx.send(f"Can't find **{nickname}** on EUNE server.")
+        summoner_stats, tier_emoji = await SettingsCommands.get_riot_stats(ctx, stats_type='TFT', nickname=nickname)
+
+        # searching database to check if player's already exists
+        tft_player = collection.find_one({'nickname': nickname})
+        if tft_player:
+            await ctx.send(f'Player **{nickname}** already exists in database')
             return
 
-        summoner_tft_stats = self.watcher.league.by_summoner(self.region, summoner['id'])
-        if not summoner_tft_stats:
-            await ctx.send(f"Player **{nickname}** is unranked")
-            return
-
-        q_type = 0
-        if summoner_tft_stats[0]['queueType'] == 'RANKED_TFT_TURBO':
-            q_type = 1
-
-        tft_player = collection.find_one({"nickname": nickname})
-        if tft_player:  # searching database to check if player's already exists
-            await ctx.send(f"Player **{nickname}** already exists in database")
-            return  # return if player's already in the database
-        else:
-            tier_emoji, ranking = await self.rank_check(ctx)
-            query = {
-                '_id': summoner_tft_stats[q_type]['summonerId'],
-                'nickname': nickname,
-                'matchesPlayed': (summoner_tft_stats[q_type]['wins'] + summoner_tft_stats[q_type]['losses']),
-                'rank': summoner_tft_stats[q_type]['rank'],
-                'tier': summoner_tft_stats[q_type]['tier'],
-                'leaguePoints': summoner_tft_stats[q_type]['leaguePoints'],
-                'tierEmoji': tier_emoji,
-                'wins': summoner_tft_stats[q_type]['wins'],
-                'ranking': ranking
-            }
-            collection.insert_one(query)
-            await ctx.send(f"Added **{nickname}** to the database")
+        tier_emoji, ranking = await SettingsCommands.riot_rank_check(summoner_stats)
+        query = {
+            '_id': summoner_stats['summonerId'],
+            'nickname': nickname,
+            'matchesPlayed': (summoner_stats['wins'] + summoner_stats['losses']),
+            'rank': summoner_stats['rank'],
+            'tier': summoner_stats['tier'],
+            'leaguePoints': summoner_stats['leaguePoints'],
+            'tierEmoji': tier_emoji,
+            'wins': summoner_stats['wins'],
+            'ranking': ranking
+        }
+        collection.insert_one(query)
+        await ctx.send(f'Added **{nickname}** to the database')
 
     @cog_ext.cog_slash(
         name="tft_remove_player",
@@ -215,24 +167,21 @@ class TftCommands(commands.Cog):
                 None
         """
         channel_check = await SettingsCommands.channel_check(ctx)
-        collection = await SettingsCommands.db_connection("Discord_Bot_Database", "tft_players")
-        if not channel_check:
-            return
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'tft_players', ctx=ctx)
 
-        if collection is None:
-            await ctx.send("Failed to connect to Database :(")
+        if not channel_check or collection is None:
             return
 
         if not ctx.author.guild_permissions.manage_messages:
-            await ctx.send("You don't have permission to delete users from database, ask administrators or moderators")
+            await ctx.send('You don\'t have permission to delete users from database, ask administrators or moderators')
             return
 
-        tft_player = collection.find_one({"nickname": nickname})
+        tft_player = collection.find_one({'nickname': nickname})
         if tft_player:
-            collection.delete_one({"nickname": nickname})  # removing player from database
-            await ctx.send(f"You have deleted **{nickname}** from database")
+            collection.delete_one({'nickname': nickname})  # removing player from database
+            await ctx.send(f'You have deleted **{nickname}** from database')
         else:
-            await ctx.send(f"Can't find **{nickname}** in database")
+            await ctx.send(f'Can\'t find **{nickname}** in database')
 
     @cog_ext.cog_slash(
         name="tft_ranking",
@@ -250,12 +199,11 @@ class TftCommands(commands.Cog):
                 None
         """
         channel_check = await SettingsCommands.channel_check(ctx)
-        collection = await SettingsCommands.db_connection("Discord_Bot_Database", "tft_players")
-        if not channel_check:
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'tft_players', ctx=ctx)
+
+        if not channel_check or collection is None:
             return
-        if collection is None:
-            await ctx.send("Failed to connect to Database :(")
-            return
+
         embed = discord.Embed(
           color=0x11f80d,
           title="🏆 Teamfight Tactics Leaderboard 🏆",
@@ -263,41 +211,29 @@ class TftCommands(commands.Cog):
         )
         file = discord.File(self.penguFilepath, filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
+
         await ctx.defer()  # defer a command due to long computing time and timeouts from slash commands
-        iterator = 1
         for old_tft_player in collection.find():
-
-            summoner = self.watcher.summoner.by_name(self.region, old_tft_player['nickname'])
-            if not summoner:
-                await ctx.send(f"Can't find **{old_tft_player['nickname']}** on EUNE server.")
-                return
-
-            summoner_tft_stats = self.watcher.league.by_summoner(self.region, summoner['id'])
-            if not summoner_tft_stats:
-                await ctx.send(f"Player **{old_tft_player['nickname']}** is unranked")
-                return
-
-            q_type = 0
-            if summoner_tft_stats[0]['queueType'] == 'RANKED_TFT_TURBO':
-                q_type = 1
-
-            tier_emoji, ranking = await self.rank_check(ctx)
+            summoner, summoner_stats = await SettingsCommands.get_riot_stats(ctx,
+                                                                             stats_type='TFT',
+                                                                             nickname=old_tft_player['nickname'])
+            tier_emoji, ranking = await SettingsCommands.riot_rank_check(summoner_stats)
             collection.update_one({"nickname": old_tft_player['nickname']},
                                   {"$set": {"matchesPlayed":
-                                            (summoner_tft_stats[q_type]['wins']+summoner_tft_stats[q_type]['losses']),
-                                            "rank": summoner_tft_stats[q_type]['rank'],
-                                            "tier": summoner_tft_stats[q_type]['tier'],
-                                            "leaguePoints": summoner_tft_stats[q_type]['leaguePoints'],
-                                            "tierEmoji": tier_emoji, "wins": summoner_tft_stats[q_type]['wins'],
+                                            (summoner_stats['wins']+summoner_stats['losses']),
+                                            "rank": summoner_stats['rank'],
+                                            "tier": summoner_stats['tier'],
+                                            "leaguePoints": summoner_stats['leaguePoints'],
+                                            "tierEmoji": tier_emoji, "wins": summoner_stats['wins'],
                                             "ranking": ranking
                                             }})
         # iterate over every player in leaderboard to give him right place
-        for tft_player in collection.find().sort("ranking", pymongo.DESCENDING):
-            if iterator == 1:  # first, second and third place have custom emoji besides their nickname on leaderboard
+        for iterator, tft_player in enumerate(collection.find().sort("ranking", DESCENDING)):
+            if iterator == 0:  # first, second and third place have custom emoji besides their nickname on leaderboard
                 rank_emoji = ":first_place:"
-            elif iterator == 2:
+            elif iterator == 1:
                 rank_emoji = ":second_place:"
-            elif iterator == 3:
+            elif iterator == 2:
                 rank_emoji = ":third_place:"
             else:
                 rank_emoji = None
@@ -317,7 +253,6 @@ class TftCommands(commands.Cog):
                           f" with **{tft_player['matchesPlayed']}** matches played",
                     inline=False
                 )
-            iterator += 1
         await ctx.send(embed=embed, file=file)
 
     @cog_ext.cog_slash(
@@ -351,6 +286,7 @@ class TftCommands(commands.Cog):
             Returns:
                 None
         """
+        watcher = TftWatcher(getenv('APIKEYTFT'))
         channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
@@ -358,68 +294,79 @@ class TftCommands(commands.Cog):
         # due to API limitations, we can't collect data from more than 500 matches
         if number_of_matches >= 500 or number_of_matches <= 0:
             await ctx.send(f"Wrong number of matches! Try between 0 - 500")
-            return  # return if wrong number of matches was specified
-
-        summoner = self.watcher.summoner.by_name(self.region, nickname)
-        if not summoner:
-            await ctx.send(f"Can't find summoner **{nickname}**")
             return
 
-        summoner_tft_stats = self.watcher.league.by_summoner(self.region, summoner['id'])
-        count = number_of_matches
-
+        summoner, summoner_stats = await SettingsCommands.get_riot_stats(ctx, stats_type='TFT', nickname=nickname,
+                                                                         all_stats=True)
         # access player's match history in form of list of match ids
-        match_list = self.watcher.match.by_puuid("europe", summoner['puuid'], count)
+        match_list = watcher.match.by_puuid("europe", summoner['puuid'], number_of_matches)
         if not match_list:  # check if player played at least 1 match
             await ctx.send(f"**{nickname}** didn't played any Teamfight Tactics games")
-            return  # return if player has no matches of Teamfight Tactics on their account
+            return
 
         # Getting data from .json files that are used to store information about Teamfight Tactics characters etc.
         all_stats = await SettingsCommands.load_json_dict("JsonData/allStats.json")
-        comps = await SettingsCommands.load_json_dict("JsonData/tftComps.json")
+        comps = await SettingsCommands.load_json_dict("JsonData/tft6.json")
+
         await ctx.defer()
+
         for match in match_list:  # iterate over every match in match list
-            match_detail = self.watcher.match.by_id("europe", match)  # getting match details for further analysis
+            match_detail = watcher.match.by_id("europe", match)  # getting match details for further analysis
+
             # check if we're getting matches only from current "set" in Teamfight Tactics
             if match_detail['info']['tft_set_number'] != 6:
                 break
+
             # iterate over every participant in match to find our player
             for participant in match_detail['info']['participants']:
+
                 # check if player's 'puuid' matches participant 'puuid' to ensure we're collecting our player's data
                 if participant['puuid'] == summoner['puuid']:
+
                     # iterate over every 'trait' that player has on their board
                     for trait in participant['traits']:
+
                         # if trait is active, we collect that to our dictionary for further analysis
                         if trait['tier_current'] > 0:
+
                             comps[str(trait['name'])][0] += 1
+
                             # check if player was above 4th place for further performance analysis
                             if participant['placement'] <= 4:
                                 comps[str(trait['name'])][1] += 1
-                    # check from what type of queue the match we're analyzing right now is
+
+                    # check from what type of queue the match we're analyzing right now and
+                    # assign q_type variable based on queue type of the match
                     if match_detail['info']['queue_id'] == 1090:
-                        q_type = 'Normal'  # assign q_type variable based on queue type of the match
+                        q_type = 'Normal'
                     elif match_detail['info']['queue_id'] == 1100:
                         q_type = 'Ranked'
                     elif match_detail['info']['queue_id'] == 1150:
                         q_type = 'Double Up'
                     else:
                         q_type = 'Hyper Roll'
+
                     # boolean that tells us that player has played that queue type at least once
                     all_stats[str(q_type)]['hasPlayed'] = True
                     all_stats[str(q_type)]['played'] += 1  # increment number of matches played
+
                     # information about placement in that match for further analysis
                     all_stats[str(q_type)]['placements'] += participant['placement']
                     if participant['placement'] <= 4:
                         all_stats[str(q_type)]['top4'] += 1
                         if participant['placement'] == 1:
                             all_stats[str(q_type)]['winrate'] += 1
-        comps_sorted = sorted(  # sort dictionary based on amount of times a trait has been played
-          comps.items(),
-          key=lambda x: x[1],
-          reverse=True
+
+        # sort dictionary based on amount of times a trait has been played
+        comps_sorted = sorted(
+            comps.items(),
+            key=lambda x: x[1],
+            reverse=True
         )
+
         title_nickname = nickname.lower()
         title_nickname = title_nickname.replace(" ", "")
+
         embed = discord.Embed(
             color=0x11f80d,
             title=f"{self.tftEmoji} Teamfight Tactics {nickname}'s Stats ",
@@ -428,12 +375,13 @@ class TftCommands(commands.Cog):
         )
         file = discord.File(self.penguFilepath, filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
-        if summoner_tft_stats:
-            tier_emoji, ranking = await self.rank_check(ctx)
+
+        if summoner_stats:
+            tier_emoji, ranking = await SettingsCommands.riot_rank_check(summoner_stats)
             embed.add_field(
-                name="RANK",
-                value=f"{tier_emoji} {summoner_tft_stats[0]['tier']} {summoner_tft_stats[0]['rank']} | "
-                      f"{summoner_tft_stats[0]['leaguePoints']} LP",
+                name=":trophy: RANK",
+                value=f"{tier_emoji} {summoner_stats[0]['tier']} {summoner_stats[0]['rank']} | "
+                      f"{summoner_stats[0]['leaguePoints']} LP",
                 inline=False
             )
         else:
@@ -444,27 +392,30 @@ class TftCommands(commands.Cog):
             )
         for key in all_stats.keys():  # iterate for every queue type that player has played
             if all_stats[key]['hasPlayed']:  # check if player has played at least one match in that queue type
+                average_place = round(all_stats[key]['placements']/all_stats[key]['played'], 2)
                 embed.add_field(  # adding field contains information about his performance in that queue type
-                    name=f"{key}",
+                    name=f"{self.tftEmoji} {key}",
                     value=f"""
-                    **{all_stats[key]['played']}** games played with avg. **{round(all_stats[key]['placements']/all_stats[key]['played'], 2)}** place
+                    **{all_stats[key]['played']}** games played with avg. **{average_place}** place
                     **{round((all_stats[key]['top4']/all_stats[key]['played'])*100, 2)}%** top 4 rate
                     **{round((all_stats[key]['winrate']/all_stats[key]['played'])*100, 2)}%** winrate
                     """,  # data contains his average placement, winrate etc.
                     inline=False
                 )
         # adding field with favourite traits that player has played the most in his games
-        print(comps_sorted[0][1][2])
         embed.add_field(
-            name="FAVOURITE TRAITS",
-            value=f"""
-            **{str(comps_sorted[0][1][2])} {comps_sorted[0][0][5:]}** in {comps_sorted[0][1][0]} matches with **{round((comps_sorted[0][1][1]/comps_sorted[0][1][0])*100, 2)}%** top 4 ratio
-            **{str(comps_sorted[1][1][2])} {comps_sorted[1][0][5:]}** in {comps_sorted[1][1][0]} matches with **{round((comps_sorted[1][1][1]/comps_sorted[1][1][0])*100, 2)}%** top 4 ratio
-            **{str(comps_sorted[2][1][2])} {comps_sorted[2][0][5:]}** in {comps_sorted[2][1][0]} matches with **{round((comps_sorted[2][1][1]/comps_sorted[2][1][0])*100, 2)}**% top 4 ratio
-            **{str(comps_sorted[3][1][2])} {comps_sorted[3][0][5:]}** in {comps_sorted[3][1][0]} matches with **{round((comps_sorted[3][1][1]/comps_sorted[3][1][0])*100, 2)}**% top 4 ratio
-            **{str(comps_sorted[4][1][2])} {comps_sorted[4][0][5:]}** in {comps_sorted[4][1][0]} matches with **{round((comps_sorted[4][1][1]/comps_sorted[4][1][0])*100, 2)}**% top 4 ratio 
-            """
-        )
+            name=":heart: FAVOURITE TRAITS",
+            value=f'**{comps_sorted[0][0][5:]}** in {comps_sorted[0][1][0]} matches '
+            f'with **{round((comps_sorted[0][1][1]/comps_sorted[0][1][0])*100, 2)}%** top 4 ratio\n'
+            f'**{comps_sorted[1][0][5:]}** in {comps_sorted[1][1][0]} matches '
+            f'with **{round((comps_sorted[1][1][1]/comps_sorted[1][1][0])*100, 2)}%** top 4 ratio\n'
+            f'**{comps_sorted[2][0][5:]}** in {comps_sorted[2][1][0]} matches '
+            f'with **{round((comps_sorted[2][1][1]/comps_sorted[2][1][0])*100, 2)}**% top 4 ratio\n'
+            f'**{comps_sorted[3][0][5:]}** in {comps_sorted[3][1][0]} matches '
+            f'with **{round((comps_sorted[3][1][1]/comps_sorted[3][1][0])*100, 2)}**% top 4 ratio\n'
+            f'**{comps_sorted[4][0][5:]}** in {comps_sorted[4][1][0]} matches '
+            f'with **{round((comps_sorted[4][1][1]/comps_sorted[4][1][0])*100, 2)}**% top 4 ratio\n')
+        embed.set_footer(text=f'Statistics provided by {self.client.user.name}')
         await ctx.send(embed=embed, file=file)
 
 
