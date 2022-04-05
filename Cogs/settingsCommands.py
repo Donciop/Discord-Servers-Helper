@@ -1,11 +1,12 @@
+import requests.exceptions
 from discord.ext import commands
 from pymongo import MongoClient
 from os import getenv, makedirs, path
 from asyncio import sleep
 import discord
-from json import loads
+from json import loads, dump
 import logging
-
+from riotwatcher import TftWatcher, LolWatcher
 logging.basicConfig(level=logging.INFO)
 
 
@@ -30,13 +31,14 @@ class SettingsCommands(commands.Cog):
         return final_dict
 
     @staticmethod
-    async def db_connection(db: str, collection: str):
+    async def db_connection(db: str, collection: str, *, ctx=None):
         """
         Utility method that is used to connect to the MongoDB Database
 
             Args:
                 db (str): Name of the Database
                 collection (str): Name of the Collection in Database
+                ctx (optional): Context of the command
 
             Returns:
                 collection: Collection from the Database
@@ -44,6 +46,12 @@ class SettingsCommands(commands.Cog):
         mongo_client = MongoClient(getenv('MONGOURL'))
         db = mongo_client[db]
         collection = db[collection]
+        if collection is None:
+            if ctx:
+                await ctx.send('Cannot connect to the database')
+                return
+            else:
+                return
         return collection
 
     @staticmethod
@@ -58,7 +66,9 @@ class SettingsCommands(commands.Cog):
                 bool: True if user can send messages in this channel, False otherwise
         """
         channel_check = False
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'guild_bot_channels')
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'guild_bot_channels', ctx=ctx)
+        if collection is None:
+            return
         check = collection.find_one({'_id': ctx.guild.id})
         if not check:
             channel_check = True
@@ -139,6 +149,93 @@ class SettingsCommands(commands.Cog):
                 except discord.HTTPException:
                     return False
 
+    @staticmethod
+    async def get_riot_stats(ctx, *, stats_type: str, nickname: str, all_stats=False):
+        """
+        Utility method used to gather information about player's rank
+
+            Args:
+                ctx: Context of the command
+                stats_type (str): Whether we gather stats from League of Legends (LOL) or Teamfight Tactics (TFT)
+                nickname (str): Player's nickname
+                all_stats (bool, optional): if True, gather information about all queue types
+                from Teamfight Tactics (TFT)
+
+            Returns:
+                summoner (dict): Information about players profile
+                summoner_stats (dict): Information about player's rank
+        """
+        watcher = TftWatcher(getenv('APIKEYTFT'))
+        if stats_type.lower() == 'lol':
+            watcher = LolWatcher(getenv('APIKEYLOL'))
+
+        try:
+            summoner = watcher.summoner.by_name('eun1', nickname)
+        except requests.exceptions.HTTPError:
+            summoner_stats = []
+            summoner = ''
+            await ctx.send(f"Can't find **{nickname}** on EUNE server.")
+            return summoner, summoner_stats
+
+        summoner_stats = watcher.league.by_summoner('eun1', summoner['id'])
+        if not summoner_stats:
+            summoner_stats = []
+            await ctx.send(f'Player {nickname} is unranked')
+            return summoner, summoner_stats
+
+        if all_stats:
+            return summoner, summoner_stats
+        queue_found = False
+        for league_type in summoner_stats:
+            if league_type['queueType'] == 'RANKED_TFT':
+                queue_found = True
+                return summoner, league_type
+            else:
+                queue_found = False
+        if not queue_found:
+            summoner_stats = []
+            await ctx.send(f'Player {nickname} is unranked')
+            return summoner, summoner_stats
+
+    @staticmethod
+    async def riot_rank_check(summoner_rank: dict, *, tier_emoji=True, rank=True):
+        """
+        Method that checks player's rank and return specific information for further usage
+
+            Args:
+                summoner_rank (dict): Dictionary from RiotWatcher containing information about player's ranking
+                tier_emoji (bool): if True, method will return specific emoji associated with ranked tier
+                rank (bool): if True, method will return local rating
+
+            Returns:
+                tier_emoji: custom emoji based on player's rank
+                rank (int): calculated rating for local leaderboard
+        """
+
+        rank_dict = await SettingsCommands.load_json_dict("JsonData/rankDict.json")
+        rank_list = ['I', 'II', 'III', 'IV']
+        local_rank = 0
+        local_tier_emoji = None
+        if not summoner_rank:
+            return local_tier_emoji, local_rank
+        for tier in rank_dict:  # iterate over every tier until we find player's tier
+            if summoner_rank[0]['tier'] != tier:
+                local_rank += 400
+            else:
+                local_tier_emoji = rank_dict[tier]
+                break
+        for lol_rank in rank_list:  # iterate over every rank until we find player's rank
+            if summoner_rank[0]['rank'] != lol_rank:
+                local_rank += 100
+            else:
+                break
+        local_rank += summoner_rank[0]['leaguePoints']  # calculate final rating for leaderboard
+        if rank and tier_emoji:
+            return local_tier_emoji, local_rank
+        elif rank:
+            return rank
+        else:
+            return local_tier_emoji
 
 def setup(client):
     client.add_cog(SettingsCommands(client))
