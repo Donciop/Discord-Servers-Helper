@@ -50,7 +50,9 @@ async def on_message(message: discord.Message):
         Returns:
             None
     """
-    collection = await SettingsCommands.db_connection("Discord_Bot_Database", "new_members")
+    collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+    if collection is None:
+        return
     collection.update_one(
         {"_id": message.author.id},
         {"$inc": {"messages_sent": 1}}
@@ -59,17 +61,20 @@ async def on_message(message: discord.Message):
 
 
 @client.event
-async def on_member_join(member: discord.Member):
+async def on_member_join(ctx, member: discord.Member):
     """
     Event handler that is called when a new member joins a Discord Channel
 
         Args:
+            ctx: Context of the command
             member (discord.Member): Discord Member that joins Discord Server (Guild)
 
         Returns:
             None
     """
     collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+    if collection is None:
+        return
     check = collection.find_one({"_id": member.id})
     if not check:
         query = {
@@ -208,4 +213,4 @@ async def before():  # wait for bot to go online to start the task
 
 
 reminder.start()  # start tasks
-client.run(getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN

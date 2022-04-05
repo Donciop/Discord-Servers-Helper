@@ -310,7 +310,9 @@ class EverybodyCommands(commands.Cog):
         channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members', ctx=ctx)
+        if collection is None:
+            return
         if not collection.count_documents({"_id": member.id}):
             await ctx.send(f"{member.mention} is a Bot, or isn't in our Database yet!")
             return
@@ -346,7 +348,9 @@ class EverybodyCommands(commands.Cog):
         channel_check = await SettingsCommands.channel_check(ctx)
         if not channel_check:
             return
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members', ctx=ctx)
+        if collection is None:
+            return
         if not collection.count_documents({"_id": member.id}):
             await ctx.send(f"{member.mention} is a Bot, or isn't in our Database yet!")
             return
@@ -405,7 +409,9 @@ class EverybodyCommands(commands.Cog):
             title="🏆 Leaderboard 🏆"
         )
         embed.set_thumbnail(url="attachment://image.png")
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members', ctx=ctx)
+        if collection is None:
+            return
         for iterator, user in enumerate(collection.find().sort('messages_sent', DESCENDING).limit(10)):
             member = self.client.get_user(user['_id'])
             if iterator <= 10 and user['messages_sent'] > 0:
