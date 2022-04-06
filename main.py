@@ -13,7 +13,7 @@ intents.members = True
 
 # Initialize bot
 
-client = commands.Bot(command_prefix='*', intents=intents, help_command=None)
+client = commands.Bot(command_prefix='&', intents=intents, help_command=None)
 slash = SlashCommand(client, sync_commands=True)
 
 # Loading cogs
@@ -193,13 +193,13 @@ async def reminder():
     """ Task that is responsible for checking time and is called every 12 hours. """
     current_time = datetime.now()  # get current time
     bot_channel = client.get_channel(796794980810620948)  # check if we're sending message in right channel
-    if current_time.hour == 12 and current_time.minute == 0:
+    if current_time.hour == 10 and current_time.minute == 0:
         await bot_channel.send("""
         It's high noon!
 
 Please vote for my second bot, **Discord Wordsy**, so I could have Alak Kebab once a week.
 https://top.gg/bot/934989894995021866/vote""")
-    if current_time.hour == 24 and current_time.minute == 0:
+    if current_time.hour == 22 and current_time.minute == 0:
         await bot_channel.send("""
         It's midnight!
 
@@ -213,4 +213,4 @@ async def before():  # wait for bot to go online to start the task
 
 
 reminder.start()  # start tasks
-client.run(getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
