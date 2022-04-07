@@ -1,35 +1,49 @@
-import discord
+import nextcord
 from pymongo import DESCENDING
 from asyncio import sleep
-from discord.ext import commands
-from discord_slash import cog_ext  # for slash commands
-from discord_slash.utils.manage_commands import create_option
+from nextcord.ext import commands
+from nextcord import SlashOption
 from Cogs.settingsCommands import SettingsCommands
+
+
+class OnlineDropdown(nextcord.ui.Select):
+    def __init__(self, interaction: nextcord.Interaction):
+        options = []
+        for single_role in interaction.guild.roles:
+            if single_role.is_bot_managed():
+                continue
+            options.append(nextcord.SelectOption(label=f'{single_role.name}', value=f'{single_role.id}'))
+        super().__init__(placeholder='Choose role...', min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: nextcord.Interaction):
+        members_online = []
+        role = interaction.guild.get_role(int(self.values[0]))
+        for member in interaction.guild.members:
+            if member.get_role(role.id):
+                members_online.append(member.display_name)
+        await interaction.response.send_message(f'There is {len(members_online)} members online with that role',
+                                                ephemeral=True)
 
 
 class EverybodyCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @cog_ext.cog_slash(
-        name="help",
-        description="Show information about commands",
-        guild_ids=[218510314835148802]
-    )
-    async def help(self, ctx):
+    @nextcord.slash_command(name='help', guild_ids=[218510314835148802], force_global=True)
+    async def help(self, interaction: nextcord.Interaction):
         """
         Basic help command, shows information about all the available commands
 
             Args:
-                ctx: Context of the command
+                interaction: (nextcord.Interaction): Context of the command
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
-        embed = discord.Embed(
+        embed = nextcord.Embed(
             color=0x11f80d,
             title="📜 COMMANDS",
             description="**Use `/` or `*` before every command**"
@@ -116,155 +130,98 @@ class EverybodyCommands(commands.Cog):
                   """,
             inline=False
         )
-        embed.set_footer(text=f"Copyrighted by {ctx.guild.owner.name} #{ctx.guild.owner.discriminator}")
-        await ctx.send(embed=embed)
+        embed.set_footer(text=f"Copyrighted by {interaction.guild.owner.name} #{interaction.guild.owner.discriminator}")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @cog_ext.cog_slash(
-        name="dc_online",
-        description="Display a list of online members of selected role",
-        guild_ids=[218510314835148802],
-        options=[
-            create_option(
-                name="role",
-                description="Select player's role",
-                option_type=8,
-                required=True
-            )
-        ]
-    )
-    async def online(self, ctx, role):
+    @nextcord.slash_command(name='who_online', guild_ids=[218510314835148802], force_global=True)
+    async def who_online(self, interaction: nextcord.Interaction):
         """
         Command used to display a list of online members that has selected role
 
             Args:
-                ctx: Context of the command
-                role (discord.Role): We want to search for users that has this Discord Role
+                interaction: (nextcord.Interaction): Context of the command
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
-        members = role.members
-        empty = True
-        embed = discord.Embed(color=0x11f80d)
-        embed.set_author(
-            name=ctx.author.display_name,
-            icon_url=ctx.author.avatar_url
-        )
-        if not role:
-            embed.add_field(
-                name="🛑 Online Failed",
-                value="You have to specify a role"
-            )
-        for member in members:
-            if str(member.status) == "online":
-                embed.add_field(
-                    name="✅ Online",
-                    value=f"★ {member.display_name}",
-                    inline=False
-                )
-                empty = False
-        if empty:
-            embed = discord.Embed(color=0xeb1414)
-            embed.set_author(
-                name=ctx.author.display_name,
-                icon_url=ctx.author.avatar_url
-            )
-            embed.add_field(
-                name="💤 Offline",
-                value="Everybody's offline :(",
-                inline=False
-            )
-        await ctx.send(embed=embed)
+        view = nextcord.ui.View()
+        view.add_item(OnlineDropdown(interaction))
 
-    @cog_ext.cog_slash(
-        name="dc_poke",
-        description="Poke a member!",
-        guild_ids=[218510314835148802],
-        options=[
-            create_option(
-                name="member",
-                description="Select member!",
-                option_type=6,
-                required=True
-            )
-        ]
-    )
-    async def poke(self, ctx, member: discord.Member):
+        await interaction.response.send_message('Pick a role', view=view)
+
+    @nextcord.slash_command(name='dc_poke', guild_ids=[218510314835148802], force_global=True)
+    async def dc_poke(self, interaction: nextcord.Interaction,
+                      member: nextcord.Member = SlashOption(required=True)):
         """
         Command used to imitate TeamSpeak3's 'poke' function
 
             Args:
-                ctx: Context of the command
-                member (discord.Member): Discord Member that we want to poke
+                interaction: (nextcord.Interaction): Context of the command
+                member (nextcord.Member): Discord Member that we want to poke
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
-        await ctx.defer()
-        embed = discord.Embed(color=0x11f80d)
-        embed.set_author(
-            name=ctx.author.display_name,
-            icon_url=ctx.author.avatar_url
-        )
-        if ctx.author == member:
-            embed = discord.Embed(color=0xeb1414)
-            embed.set_author(
-                name=ctx.author.display_name,
-                icon_url=ctx.author.avatar_url
-            )
-            embed.add_field(
-                name="🛑 Poke Failed",
-                value="You can't poke yourself"
-            )
-        else:
-            embed.add_field(
-                name="✅ Poke Successful",
-                value=f"You've poked {member.display_name}",
-                inline=False
-            )
-            user_channel = member.voice.channel
-            if member.voice.channel == ctx.guild.afk_channel:
-                await member.move_to(user_channel)
-                await sleep(2)
-                await member.move_to(ctx.guild.afk_channel)
-            else:
-                await member.move_to(ctx.guild.afk_channel)
-                await sleep(2)
-                await member.move_to(user_channel)
-        await ctx.send(embed=embed)
 
-    @cog_ext.cog_slash(
-        name="dc_bans",
-        description="Show banned users",
-        guild_ids=[218510314835148802]
-    )
-    async def bans(self, ctx):
+        if interaction.user == member:
+            await interaction.response.send_message(f'You can\'t poke yourself', ephemeral=True)
+            return
+
+        if member.bot:
+            await interaction.response.send_message(f'Cannot poke Bots', ephemeral=True)
+            return
+
+        if str(member.status) == 'offline':
+            await interaction.response.send_message(f'User is offline', ephemeral=True)
+            return
+
+        if not member.voice:
+            await interaction.response.send_message(f'User\'s not in Voice Channel', ephemeral=True)
+            return
+
+        await interaction.response.defer()
+
+        if member.voice.channel == interaction.guild.afk_channel:
+            await member.move_to(interaction.guild.afk_channel)
+            await sleep(1)
+            await member.move_to(member.voice.channel)
+        else:
+            await member.move_to(member.voice.channel)
+            await sleep(1)
+            await member.move_to(interaction.guild.afk_channel)
+
+        await interaction.followup.send(f"✅ Poke Successful\n"
+                                        f"You've poked {member.display_name}")
+        return
+
+    @nextcord.slash_command(name='dc_bans', guild_ids=[218510314835148802], force_global=True)
+    async def dc_bans(self, interaction: nextcord.Interaction):
         """
         Command used to show banned members in Discord's server
 
             Args:
-                ctx: Context of the command
+                interaction: (nextcord.Interaction): Context of the command
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
-        banned_users = await ctx.guild.bans()
-        embed = discord.Embed(
+        banned_users = await interaction.guild.bans()
+        embed = nextcord.Embed(
           color=0xeb1414,
           title="👮‍♂ BANNED USERS 👮‍♂",
           description="For advanced information, ask administration or moderators."
         )
         audit_logs = {}
-        async for entry in ctx.guild.audit_logs(action=discord.AuditLogAction.ban, limit=None):
+        async for entry in interaction.guild.audit_logs(action=nextcord.AuditLogAction.ban):
             audit_logs[entry.target.name] = entry.user.name
         for banEntry in banned_users:
             if str(banEntry.user.name) in audit_logs:
@@ -279,63 +236,43 @@ class EverybodyCommands(commands.Cog):
                   value="\u200B",
                   inline=False
                 )
-        file = discord.File("Media/jail.png", filename="image.png")
+        file = nextcord.File("Media/jail.png", filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
-        await ctx.send(embed=embed, file=file)
+        await interaction.response.send_message(embed=embed, file=file)
 
-    @cog_ext.cog_slash(
-        name="dc_stats_messages",
-        description="Show member's message statistics",
-        guild_ids=[218510314835148802],
-        options=[
-            create_option(
-                name="member",
-                description="Select member!",
-                option_type=6,
-                required=True
-            )
-        ]
-    )
-    async def dc_stats_messages(self, ctx, member: discord.Member):
+    @nextcord.slash_command(name='dc_stats_messages', guild_ids=[218510314835148802], force_global=True)
+    async def dc_stats_messages(self, interaction: nextcord.Interaction,
+                                member: nextcord.Member = SlashOption(required=True)):
         """
         Command used to show how many messages the member has sent
 
             Args:
-                ctx: Context of the command
-                member (discord.Member): Discord Member from whom we want to collect amount of messages
+                interaction: (nextcord.Interaction): Context of the command
+                member (nextcord.Member): Discord Member from whom we want to collect amount of messages
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members', ctx=ctx)
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
         if collection is None:
             return
         if not collection.count_documents({"_id": member.id}):
-            await ctx.send(f"{member.mention} is a Bot, or isn't in our Database yet!")
+            await interaction.response.send_message(f"{member.mention} is a Bot, or isn't in our Database yet!")
             return
         if collection.find_one({"_id": member.id}):
-            messages_sent = collection.find_one({"_id": member.id}, {"messages_sent": 1})
-            await ctx.send(f"{member.mention} had written **{messages_sent['messages_sent']}** messages so far!")
+            messages_sent = collection.find_one({'_id': member.id}, {'messages_sent': 1})
+            await interaction.response.send_message(f"{member.mention} had written"
+                                                    f" **{messages_sent['messages_sent']}** messages so far!")
         else:
-            await ctx.send(f"{member.mention} had not written any messages so far (from 07.02.2022).")
+            await interaction.response.send_message(f"{member.mention}"
+                                                    f" had not written any messages so far.")
 
-    @cog_ext.cog_slash(
-        name="dc_stats_online",
-        description="Show member's time online statistics",
-        guild_ids=[218510314835148802],
-        options=[
-            create_option(
-                name="member",
-                description="Select member!",
-                option_type=6,
-                required=True
-            )
-        ]
-    )
-    async def dc_stats_online(self, ctx, member):
+    @nextcord.slash_command(name='dc_stats_online', guild_ids=[218510314835148802], force_global=True)
+    async def dc_stats_online(self, interaction: nextcord.Interaction,
+                              member: nextcord.Member = SlashOption(required=True)):
         """
         Command used to show for how long the member has been online
 
@@ -345,73 +282,79 @@ class EverybodyCommands(commands.Cog):
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members', ctx=ctx)
+
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
         if collection is None:
             return
+
         if not collection.count_documents({"_id": member.id}):
-            await ctx.send(f"{member.mention} is a Bot, or isn't in our Database yet!")
+            await interaction.response.send_message(f"{member.mention} is a Bot, or isn't in our Database yet!")
             return
+
         time_online = collection.find_one({"_id": member.id}, {"time_online": 1})
         if time_online['time_online'].second <= 0 or time_online['time_online'] == 0:
-            await ctx.send(f"{member.mention} wasn't online yet")
+            await interaction.response.send_message(f"{member.mention} wasn't online yet")
             return
+
         elif time_online['time_online'].second > 0 and time_online['time_online'].minute < 1:
-            await ctx.send(
+            await interaction.response.send_message(
                 f"{member.mention} was online for **{time_online['time_online'].second}** seconds so far!")
             return
+
         elif time_online['time_online'].minute > 0 and time_online['time_online'].hour < 1:
-            await ctx.send(
+            await interaction.response.send_message(
                 f"{member.mention} was online for **{time_online['time_online'].minute}m "
                 f"{time_online['time_online'].second}s** so far!")
             return
+
         elif time_online['time_online'].hour > 0 and time_online['time_online'].day < 2:
-            await ctx.send(
+            await interaction.response.send_message(
                 f"{member.mention} was online for **{time_online['time_online'].hour}h "
                 f"{time_online['time_online'].minute}m "
                 f"{time_online['time_online'].second}s** so far!")
             return
+
         elif time_online['time_online'].day >= 2:
-            await ctx.send(
+            await interaction.response.send_message(
                 f"{member.mention} was online for **{time_online['time_online'].day}d "
                 f"{time_online['time_online'].hour}h "
                 f"{time_online['time_online'].minute}m "
                 f"{time_online['time_online'].second}s** so far!")
             return
 
-    @cog_ext.cog_slash(
-        name="top_members",
-        description="Show who's the most active member on this Server!",
-        guild_ids=[218510314835148802]
-    )
-    async def top_members(self, ctx):
+    @nextcord.slash_command(name='top_members', guild_ids=[218510314835148802], force_global=True)
+    async def top_members(self, interaction: nextcord.Interaction):
         """
         Command used to show top members based on messages sent
 
             Args:
-                ctx: Context of the command
+                interaction: (nextcord.Interaction): Context of the command
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
-        file = discord.File(  # creating file to send image along the embed message
+
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+        if collection is None:
+            return
+
+        file = nextcord.File(  # creating file to send image along the embed message
             "Media/trophy.png",  # file path to image
             filename="image.png"  # name of the file
         )
-        embed = discord.Embed(
+        embed = nextcord.Embed(
             color=0x11f80d,
-            description=f'Leaderboard of the most active users in {ctx.guild.name}',
+            description=f'Leaderboard of the most active users in {interaction.guild.name}',
             title="🏆 Leaderboard 🏆"
         )
         embed.set_thumbnail(url="attachment://image.png")
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members', ctx=ctx)
-        if collection is None:
-            return
+
         for iterator, user in enumerate(collection.find().sort('messages_sent', DESCENDING).limit(10)):
             member = self.client.get_user(user['_id'])
             if iterator <= 10 and user['messages_sent'] > 0:
@@ -439,7 +382,7 @@ class EverybodyCommands(commands.Cog):
                         value=f"{user['messages_sent']} messages",
                         inline=False
                     )
-        await ctx.send(file=file, embed=embed)
+        await interaction.response.send_message(file=file, embed=embed)
 
 
 def setup(client):
