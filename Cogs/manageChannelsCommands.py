@@ -11,7 +11,6 @@ class ManageChannelsCommands(commands.Cog):
         self.client = client
 
     @nextcord.slash_command(name='add_guild_channel', guild_ids=[218510314835148802], force_global=True)
-    @commands.has_permissions(manage_channels=True)
     async def add_guild_channel(self, interaction: nextcord.Interaction,
                                 channel: GuildChannel = nextcord.SlashOption(required=True,
                                                                              channel_types=[
@@ -28,6 +27,11 @@ class ManageChannelsCommands(commands.Cog):
         """
         channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
+            return
+
+        if not interaction.user.guild_permissions.manage_channels:
+            await interaction.response.send_message('You don\'t have permission to Manage Channels to use this command',
+                                                    ephemeral=True)
             return
 
         collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'guild_bot_channels')
@@ -51,7 +55,6 @@ class ManageChannelsCommands(commands.Cog):
                                                 ephemeral=True)
 
     @nextcord.slash_command(name='remove_guild_channel', guild_ids=[218510314835148802], force_global=True)
-    @commands.has_permissions(manage_channels=True)
     async def remove_guild_channel(self, interaction: nextcord.Interaction,
                                    channel: GuildChannel = nextcord.SlashOption(required=True,
                                                                                 channel_types=[
@@ -68,6 +71,11 @@ class ManageChannelsCommands(commands.Cog):
         """
         channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
+            return
+
+        if not interaction.user.guild_permissions.manage_channels:
+            await interaction.response.send_message('You don\'t have permission to Manage Channels to use this command',
+                                                    ephemeral=True)
             return
 
         collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'guild_bot_channels')
@@ -89,7 +97,6 @@ class ManageChannelsCommands(commands.Cog):
         await interaction.response.send_message(f'Removed {channel.mention} from the database', ephemeral=True)
 
     @nextcord.slash_command(name='dc_mute', guild_ids=[218510314835148802], force_global=True)
-    @commands.has_permissions(manage_channels=True)
     async def dc_mute(self, interaction: nextcord.Interaction,
                       member: nextcord.Member = nextcord.SlashOption(required=True),
                       reason: str = nextcord.SlashOption(required=False)):
@@ -107,6 +114,12 @@ class ManageChannelsCommands(commands.Cog):
         channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
+
+        if not interaction.user.guild_permissions.manage_channels:
+            await interaction.response.send_message('You don\'t have permission to Manage Channels to use this command',
+                                                    ephemeral=True)
+            return
+
         await member.edit(mute=True)
         if reason:
             await interaction.response.send_message(f"**{member.mention}** was muted by "
@@ -116,7 +129,6 @@ class ManageChannelsCommands(commands.Cog):
                                                     f"**{interaction.user.mention}**")
 
     @nextcord.slash_command(name='dc_deaf', guild_ids=[218510314835148802], force_global=True)
-    @commands.has_permissions(manage_channels=True)
     async def dc_deaf(self, interaction: nextcord.Interaction,
                       member: nextcord.Member = nextcord.SlashOption(required=True),
                       reason: str = nextcord.SlashOption(required=False)):
@@ -134,6 +146,12 @@ class ManageChannelsCommands(commands.Cog):
         channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
+
+        if not interaction.user.guild_permissions.manage_channels:
+            await interaction.response.send_message('You don\'t have permission to Manage Channels to use this command',
+                                                    ephemeral=True)
+            return
+
         await member.edit(deafen=True)
         if reason:
             await interaction.response.send_message(f'**{member.mention}** '
