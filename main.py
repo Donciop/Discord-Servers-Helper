@@ -1,6 +1,5 @@
-import discord  # main packages
-from discord.ext import commands, tasks
-from discord_slash import SlashCommand  # for slash commands
+import nextcord  # main packages
+from nextcord.ext import commands, tasks
 from os import listdir, getenv  # utility packages
 import datetime
 from datetime import datetime
@@ -8,13 +7,11 @@ from Cogs.settingsCommands import SettingsCommands
 
 # Making sure the bot has all the permissions
 
-intents = discord.Intents().all()
-intents.members = True
+intents = nextcord.Intents().all()
 
 # Initialize bot
 
 client = commands.Bot(command_prefix='&', intents=intents, help_command=None)
-slash = SlashCommand(client, sync_commands=True)
 
 # Loading cogs
 
@@ -32,20 +29,20 @@ async def on_ready():
     """ Event handler that is called when bot is turned on. """
     print("Bot is ready")
     await client.change_presence(   # change the bot description on Discord member list
-        activity=discord.Activity(
-            type=discord.ActivityType.watching,  # get the "is watching ..." format
+        activity=nextcord.Activity(
+            type=nextcord.ActivityType.watching,  # get the "is watching ..." format
             name="small servers *help"
         )
     )
 
 
 @client.event
-async def on_message(message: discord.Message):
+async def on_message(message: nextcord.Message):
     """
     Event handler that is called when someone sends a message on discord channel
 
         Args:
-            message (discord.Message): Discord Message
+            message (nextcord.Message): Discord Message
 
         Returns:
             None
@@ -61,13 +58,12 @@ async def on_message(message: discord.Message):
 
 
 @client.event
-async def on_member_join(ctx, member: discord.Member):
+async def on_member_join(member: nextcord.Member):
     """
     Event handler that is called when a new member joins a Discord Channel
 
         Args:
-            ctx: Context of the command
-            member (discord.Member): Discord Member that joins Discord Server (Guild)
+            member (nextcord.Member): Discord Member that joins Discord Server (Guild)
 
         Returns:
             None
@@ -152,8 +148,6 @@ async def on_member_join(ctx, member: discord.Member):
 #     if str(before.status) == 'idle' and str(after.status) == 'online':
 #         print(f"{before.display_name} is back")
 
-# Tasks
-
 
 @client.event
 async def on_command_error(ctx, error):
@@ -162,13 +156,13 @@ async def on_command_error(ctx, error):
 
         Args:
             ctx: Context of the command
-            error (discord.ext.commands.errors): Error that we're trying to catch
+            error (nextcord.ext.commands.errors): Error that we're trying to catch
 
         Returns:
             None
     """
     if isinstance(error, commands.CommandOnCooldown):  # called when you try to use command that is on cooldown.
-        embed = discord.Embed(color=0xeb1414)  # Discord embed formatting
+        embed = nextcord.Embed(color=0xeb1414)  # Discord embed formatting
         embed.add_field(
           name="🛑 Command Error",
           value="Command's on cooldown. Time remaining: {}s :(".format(round(error.retry_after)),
@@ -178,7 +172,7 @@ async def on_command_error(ctx, error):
         return
 
     if isinstance(error, commands.MissingPermissions):  # called when you don't have permission to use that command.
-        embed = discord.Embed(color=0xeb1414)
+        embed = nextcord.Embed(color=0xeb1414)
         embed.add_field(
           name="🛑 Command Error",
           value="You don't have permissions to use this command, check *help for more info",
@@ -213,4 +207,4 @@ async def before():  # wait for bot to go online to start the task
 
 
 reminder.start()  # start tasks
-client.run(getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN
