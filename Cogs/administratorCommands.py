@@ -1,7 +1,7 @@
-import discord
-from discord.ext import commands
-from discord_slash import cog_ext  # for slash commands
-from discord_slash.utils.manage_commands import create_option
+import nextcord
+from nextcord import Interaction
+from nextcord.ext import commands
+from nextcord.abc import GuildChannel
 from Cogs.settingsCommands import SettingsCommands
 
 
@@ -9,35 +9,32 @@ class AdministratorCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @cog_ext.cog_slash(  # slash command decorator
-        name="msg_leaderboard",  # name that will be displayed in Discord
-        description="Show the channel's leaderboard",  # description of the command
-        guild_ids=[218510314835148802],
-        options=[
-            create_option(  # parameters in slash command
-                name="channel",  # name of the variable
-                description="Select channel",  # description of the parameter
-                option_type=7,  # option_type refers to type of the variable ( 7 - CHANNEL )
-                required=True  # this parameter is required
-            )
-        ]
-      )
-    @commands.has_permissions(administrator=True)
-    async def top(self, ctx, channel):
+    @nextcord.slash_command(name='msg_leaderboard', guild_ids=[218510314835148802], force_global=True,
+                            default_permission=False)
+    async def msg_leaderboard(self,
+                              interaction: Interaction,
+                              channel: GuildChannel = nextcord.SlashOption(required=True,
+                                                                           channel_types=[nextcord.ChannelType.text])):
+
         """
         Command used to check who send the highest amount of messages in specific channel
 
             Args:
-                ctx: Context of the command
-                channel (discord.TextChannel): Discord Text Channel in which we want to count messages
+                interaction (nextcord.Interaction): ????
+                channel (nextcord.TextChannel): Discord Text Channel in which we want to count messages
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message(f'You don\' have Administrator permissions to use this command')
+            return
+
+        channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
-        await ctx.defer()
+
+        await interaction.response.defer()
         leaderboard_not_sorted = {}
         async for msg in channel.history(limit=None):
             if str(msg.author.display_name) in leaderboard_not_sorted:
@@ -46,11 +43,11 @@ class AdministratorCommands(commands.Cog):
                 leaderboard_not_sorted[str(msg.author.display_name)] = 1
         leaderboard_sorted = sorted(leaderboard_not_sorted.items(), key=lambda x: x[1], reverse=True)
         iterator = 1
-        file = discord.File(  # creating file to send image along the embed message
+        file = nextcord.File(  # creating file to send image along the embed message
             "Media/trophy.png",  # file path to image
             filename="image.png"  # name of the file
         )
-        embed = discord.Embed(
+        embed = nextcord.Embed(
           color=0x11f80d,
           description=f'Leaderboard of the most active users in {channel.mention}',
           title="🏆 Leaderboard 🏆"
@@ -83,33 +80,7 @@ class AdministratorCommands(commands.Cog):
                         inline=False
                     )
             iterator += 1
-        await ctx.send(file=file, embed=embed)
-
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    @commands.cooldown(1, 1, commands.BucketType.user)
-    async def upload_members_to_database(self, ctx):
-        """
-        Utility method used to import server members into database
-
-            Args:
-                ctx: Context of the command
-
-            Returns:
-                None
-        """
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members', ctx=ctx)
-        if collection is None:
-            return
-        for member in ctx.guild.members:
-            if member.bot:
-                continue
-            check = collection.find_one({'_id': member.id})
-            if not check:
-                collection.insert_one({'_id': member.id, 'messages_sent': 0})
-            else:
-                collection.update_one({'_id': member.id},
-                                      {'$set': {'messages_sent': 0}})
+        await interaction.followup.send(file=file, embed=embed)
 
 
 def setup(client):
