@@ -1,6 +1,6 @@
 import nextcord
 from nextcord import Interaction
-from nextcord.ext import commands
+from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
 from Cogs.settingsCommands import SettingsCommands
 
@@ -11,6 +11,7 @@ class AdministratorCommands(commands.Cog):
 
     @nextcord.slash_command(name='msg_leaderboard', guild_ids=[218510314835148802], force_global=True,
                             default_permission=False)
+    @application_checks.has_permissions(administrator=True)
     async def msg_leaderboard(self,
                               interaction: Interaction,
                               channel: GuildChannel = nextcord.SlashOption(required=True,
@@ -83,10 +84,12 @@ class AdministratorCommands(commands.Cog):
         await interaction.followup.send(file=file, embed=embed)
 
     @nextcord.slash_command(name='save_attachments', guild_ids=[218510314835148802], force_global=True)
+    @application_checks.has_permissions(administrator=True)
     async def save_attachments(self,
                                interaction: nextcord.Interaction,
                                channel: GuildChannel = nextcord.SlashOption(required=False,
                                                                             channel_types=[nextcord.ChannelType.text])):
+
         """
         Command used to save attachments from all messages from specific channel
 
@@ -126,6 +129,7 @@ class AdministratorCommands(commands.Cog):
             counter += 1
         await interaction.followup.send(f'Saved {attachment_saved_amount} files!\n'
                                         f'Failed to save {attachment_failed_to_save_amount} files')
+
 
 def setup(client):
     client.add_cog(AdministratorCommands(client))
