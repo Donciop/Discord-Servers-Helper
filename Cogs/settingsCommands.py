@@ -278,6 +278,8 @@ class SettingsCommands(commands.Cog):
         for perms_error in error.missing_permissions:
             missing_perms += f'{perms_error}, '
         missing_perms = missing_perms.replace('_', ' ')
+        if len(missing_perms) == 1:
+            missing_perms = missing_perms.replace(',', '')
         return missing_perms
 
 
