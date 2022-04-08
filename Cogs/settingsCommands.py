@@ -1,6 +1,7 @@
 import requests.exceptions
+from typing import Union
 from nextcord import Interaction
-from nextcord.ext import commands
+from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
 from pymongo import MongoClient
 from os import getenv, makedirs, path
@@ -258,6 +259,26 @@ class SettingsCommands(commands.Cog):
             else:
                 collection.update_one({'_id': member.id},
                                       {'$set': {'messages_sent': 0}})
+
+    @staticmethod
+    async def format_missing_permissions(error: Union[application_checks.ApplicationMissingPermissions,
+                                                      commands.MissingPermissions, commands.BotMissingPermissions]):
+        """
+        Utility method used to format missing permission strings for a user-friendly response
+
+            Args:
+                error (Union[application_checks.ApplicationMissingPermissions,
+                             commands.MissingPermissions,
+                             commands.BotMissingPermissions]): error caught during execution
+
+            Returns:
+                missing_perms (str): string contains all missing perms correctly formatted
+        """
+        missing_perms = ''
+        for perms_error in error.missing_permissions:
+            missing_perms += f'{perms_error}, '
+        missing_perms = missing_perms.replace('_', ' ')
+        return missing_perms
 
 
 def setup(client):
