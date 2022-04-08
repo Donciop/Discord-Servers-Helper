@@ -3,19 +3,13 @@ from pymongo import DESCENDING
 from os import getenv
 from nextcord.ext import commands
 from Cogs.settingsCommands import SettingsCommands
+import config
 from riotwatcher import TftWatcher
 
 
 class TftCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        """ Event handler. That event is called when bot becomes online. Used mainly to initialize variables. """
-        self.penguFilepath = "Media/Pengu_TFT.png"  # filepaths for files send with Discord embeds
-        self.tftIconFilepath = "Media/Teamfight_Tactics_icon.png"
-        self.tftEmoji = "<:TFT:912917249923375114>"  # reference to custom Discord emoji
 
     @nextcord.slash_command(name='tft_rank', guild_ids=[218510314835148802], force_global=True)
     async def tft_rank(self,
@@ -57,7 +51,7 @@ class TftCommands(commands.Cog):
 
         # creating file to send image along the embed message
         file = nextcord.File(
-            self.penguFilepath,  # file path to image
+            config.TFT_THUMBNAIL_FILEPATH,  # file path to image
             filename="image.png"  # name of the file
         )
 
@@ -179,7 +173,7 @@ class TftCommands(commands.Cog):
           title="🏆 Teamfight Tactics Leaderboard 🏆",
           description="For advanced info use *tftStats or *tftRank"
         )
-        file = nextcord.File(self.penguFilepath, filename="image.png")
+        file = nextcord.File(config.TFT_THUMBNAIL_FILEPATH, filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
 
         # defer a command due to long computing time and timeouts from slash commands
@@ -330,11 +324,11 @@ class TftCommands(commands.Cog):
 
         embed = nextcord.Embed(
             color=0x11f80d,
-            title=f"{self.tftEmoji} Teamfight Tactics {nickname}'s Stats ",
+            title=f"{config.TFT_DISCORD_EMOJI} Teamfight Tactics {nickname}'s Stats ",
             description="Click the title for advanced information on LolChess",
             url=f"https://lolchess.gg/profile/eune/{title_nickname}"
         )
-        file = nextcord.File(self.penguFilepath, filename="image.png")
+        file = nextcord.File(config.TFT_THUMBNAIL_FILEPATH, filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
 
         if summoner_stats:
@@ -355,7 +349,7 @@ class TftCommands(commands.Cog):
             if all_stats[key]['hasPlayed']:  # check if player has played at least one match in that queue type
                 average_place = round(all_stats[key]['placements']/all_stats[key]['played'], 2)
                 embed.add_field(  # adding field contains information about his performance in that queue type
-                    name=f"{self.tftEmoji} {key}",
+                    name=f"{config.TFT_DISCORD_EMOJI} {key}",
                     value=f"""
                     **{all_stats[key]['played']}** games played with avg. **{average_place}** place
                     **{round((all_stats[key]['top4']/all_stats[key]['played'])*100, 2)}%** top 4 rate
