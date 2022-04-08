@@ -207,4 +207,4 @@ async def before():  # wait for bot to go online to start the task
 
 
 reminder.start()  # start tasks
-client.run(getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
