@@ -1,9 +1,7 @@
-import discord  # main packages
+import nextcord  # main packages
 from pymongo import DESCENDING
 from os import getenv
-from discord.ext import commands
-from discord_slash import cog_ext  # for slash commands
-from discord_slash.utils.manage_commands import create_option
+from nextcord.ext import commands
 from Cogs.settingsCommands import SettingsCommands
 from riotwatcher import TftWatcher
 
@@ -19,36 +17,28 @@ class TftCommands(commands.Cog):
         self.tftIconFilepath = "Media/Teamfight_Tactics_icon.png"
         self.tftEmoji = "<:TFT:912917249923375114>"  # reference to custom Discord emoji
 
-    @cog_ext.cog_slash(  # slash command decorator in cog
-        name="tft_rank",  # name that will be displayed in Discord
-        description="Check a specific player's Teamfight Tactics rank",  # description of the command
-        guild_ids=[218510314835148802],  # list of server (guilds) id's that have access to this slash command
-        options=[
-            create_option(  # parameters in slash command
-                name="nickname",  # name of the variable
-                description="Type in player's nickname",  # description of the parameter
-                option_type=3,  # option_type refers to type of the variable ( 3 - STRING )
-                required=True  # this parameter is required
-            )
-        ]
-    )
-    async def tft_rank(self, ctx, nickname: str):
+    @nextcord.slash_command(name='tft_rank', guild_ids=[218510314835148802], force_global=True)
+    async def tft_rank(self,
+                       interaction: nextcord.Interaction,
+                       nickname: str = nextcord.SlashOption(required=True)):
         """
         Command used to check player's rank in Teamfight Tactics
 
             Args:
-                ctx: Context of the command
+                interaction: (nextcord.Interaction): Context of the command
                 nickname (str): Nickname of the player we want to find
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
 
         # access data about specific player from RIOT API for later operations
-        summoner, summoner_stats = await SettingsCommands.get_riot_stats(ctx, stats_type='TFT', nickname=nickname)
+        summoner, summoner_stats = await SettingsCommands.get_riot_stats(interaction,
+                                                                         stats_type='TFT',
+                                                                         nickname=nickname)
 
         if not summoner_stats:
             return
@@ -58,7 +48,7 @@ class TftCommands(commands.Cog):
         title_nickname = title_nickname.replace(" ", "")
 
         # styling Discord embed message
-        embed = discord.Embed(
+        embed = nextcord.Embed(
             color=0x11f80d,  # color of the embed message
             title=f"🎲 Teamfight Tactics {nickname}'s Rank 🎲",  # title of the embed message
             description="Click the title for advanced information",  # description of the embed message
@@ -66,7 +56,7 @@ class TftCommands(commands.Cog):
         )
 
         # creating file to send image along the embed message
-        file = discord.File(
+        file = nextcord.File(
             self.penguFilepath,  # file path to image
             filename="image.png"  # name of the file
         )
@@ -88,43 +78,36 @@ class TftCommands(commands.Cog):
             value=f"{tier_emoji} {summoner_stats['tier']} {summoner_stats['rank']} | "
                   f"{summoner_stats['leaguePoints']} LP\n"
                   f"**{win_ratio}%** top 1 ratio ({amount_of_matches}) Matches")
-        await ctx.send(file=file, embed=embed)
+        await interaction.response.send_message(file=file, embed=embed)
 
-    @cog_ext.cog_slash(
-        name="tft_add_player",
-        description="Add a Teamfight Tactic player to the leaderboard",
-        guild_ids=[218510314835148802],
-        options=[
-            create_option(
-                name="nickname",
-                description="Type in player's nickname",
-                option_type=3,
-                required=True
-            )
-        ]
-    )
-    async def tft_add_player(self, ctx, nickname: str):
+    @nextcord.slash_command(name='tft_add_player', guild_ids=[218510314835148802], force_global=True)
+    async def tft_add_player(self,
+                             interaction: nextcord.Interaction,
+                             nickname: str = nextcord.SlashOption(required=True)):
         """
         Command used to add players to the database for further usage in leaderboard
 
             Args:
-                ctx: Context of the command
+                interaction: (nextcord.Interaction): Context of the command
                 nickname (str): Nickname of the player we want to add
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'tft_players', ctx=ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'tft_players')
         if collection is None or not channel_check:
             return
 
-        summoner_stats, tier_emoji = await SettingsCommands.get_riot_stats(ctx, stats_type='TFT', nickname=nickname)
+        summoner, summoner_stats = await SettingsCommands.get_riot_stats(interaction,
+                                                                         stats_type='TFT',
+                                                                         nickname=nickname)
 
         # searching database to check if player's already exists
         tft_player = collection.find_one({'nickname': nickname})
         if tft_player:
-            await ctx.send(f'Player **{nickname}** already exists in database')
+            await interaction.response.send_message(f'Player **{nickname}** already exists in database',
+                                                    ephemeral=True)
             return
 
         tier_emoji, ranking = await SettingsCommands.riot_rank_check(summoner_stats)
@@ -140,82 +123,70 @@ class TftCommands(commands.Cog):
             'ranking': ranking
         }
         collection.insert_one(query)
-        await ctx.send(f'Added **{nickname}** to the database')
+        await interaction.response.send_message(f'Added **{nickname}** to the database', ephemeral=True)
 
-    @cog_ext.cog_slash(
-        name="tft_remove_player",
-        description="Removes a Teamfight Tactics player from the leaderboard",
-        guild_ids=[218510314835148802],
-        options=[
-            create_option(
-                name="nickname",
-                description="Type in player's nickname",
-                option_type=3,
-                required=True
-            )
-        ]
-    )
-    async def tft_remove_player(self, ctx, nickname: str):
+    @nextcord.slash_command(name='tft_remove_player', guild_ids=[218510314835148802], force_global=True)
+    async def tft_remove_player(self,
+                                interaction: nextcord.Interaction,
+                                nickname: str = nextcord.SlashOption(required=True)):
         """
         Command used to remove players from database on demand
 
             Args:
-                ctx: Context of the command
+                interaction: (nextcord.Interaction): Context of the command
                 nickname (str): Nickname of the player we want to add'
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'tft_players', ctx=ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'tft_players')
 
         if not channel_check or collection is None:
             return
 
-        if not ctx.author.guild_permissions.manage_messages:
-            await ctx.send('You don\'t have permission to delete users from database, ask administrators or moderators')
+        if not interaction.user.guild_permissions.manage_messages:
+            await interaction.response.send_message('You don\'t have permission to delete users from database, '
+                                                    'ask administrators or moderators')
             return
 
         tft_player = collection.find_one({'nickname': nickname})
         if tft_player:
             collection.delete_one({'nickname': nickname})  # removing player from database
-            await ctx.send(f'You have deleted **{nickname}** from database')
+            await interaction.response.send_message(f'You have deleted **{nickname}** from database', ephemeral=True)
         else:
-            await ctx.send(f'Can\'t find **{nickname}** in database')
+            await interaction.response.send_message(f'Can\'t find **{nickname}** in database', ephemeral=True)
 
-    @cog_ext.cog_slash(
-        name="tft_ranking",
-        description="Show server's Teamfight Tactics leaderboard",
-        guild_ids=[218510314835148802]
-    )
-    async def tft_ranking(self, ctx):
+    @nextcord.slash_command(name='tft_ranking', guild_ids=[218510314835148802], force_global=True)
+    async def tft_ranking(self, interaction: nextcord.Interaction):
         """
         Command used to show local leaderboard of Teamfight Tactics player that are in our database
 
             Args:
-                ctx: Context of the command
+                interaction: (nextcord.Interaction): Context of the command
 
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(ctx)
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'tft_players', ctx=ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'tft_players')
 
         if not channel_check or collection is None:
             return
 
-        embed = discord.Embed(
+        embed = nextcord.Embed(
           color=0x11f80d,
           title="🏆 Teamfight Tactics Leaderboard 🏆",
           description="For advanced info use *tftStats or *tftRank"
         )
-        file = discord.File(self.penguFilepath, filename="image.png")
+        file = nextcord.File(self.penguFilepath, filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
 
-        await ctx.defer()  # defer a command due to long computing time and timeouts from slash commands
+        # defer a command due to long computing time and timeouts from slash commands
+        await interaction.response.defer()
+
         for old_tft_player in collection.find():
-            summoner, summoner_stats = await SettingsCommands.get_riot_stats(ctx,
-                                                                             stats_type='TFT',
+            summoner, summoner_stats = await SettingsCommands.get_riot_stats(interaction, stats_type='TFT',
                                                                              nickname=old_tft_player['nickname'])
             tier_emoji, ranking = await SettingsCommands.riot_rank_check(summoner_stats)
             collection.update_one({"nickname": old_tft_player['nickname']},
@@ -227,6 +198,7 @@ class TftCommands(commands.Cog):
                                             "tierEmoji": tier_emoji, "wins": summoner_stats['wins'],
                                             "ranking": ranking
                                             }})
+
         # iterate over every player in leaderboard to give him right place
         for iterator, tft_player in enumerate(collection.find().sort("ranking", DESCENDING)):
             if iterator == 0:  # first, second and third place have custom emoji besides their nickname on leaderboard
@@ -253,33 +225,18 @@ class TftCommands(commands.Cog):
                           f" with **{tft_player['matchesPlayed']}** matches played",
                     inline=False
                 )
-        await ctx.send(embed=embed, file=file)
+        await interaction.followup.send(embed=embed, file=file)
 
-    @cog_ext.cog_slash(
-        name="tft_stats",
-        description="Show user's Teamfight Tactics statistics",
-        guild_ids=[218510314835148802],
-        options=[
-            create_option(
-                name="nickname",
-                description="Type in nickname!",
-                option_type=3,
-                required=True
-            ),
-            create_option(
-                name="number_of_matches",
-                description="Type in amount of games!",
-                option_type=4,  # option_type refers to type of expected variable (4 - INTEGER)
-                required=True
-            )
-        ]
-    )
-    async def tft_stats(self, ctx, nickname: str, number_of_matches: int):
+    @nextcord.slash_command(name='tft_stats', guild_ids=[218510314835148802], force_global=True)
+    async def tft_stats(self,
+                        interaction: nextcord.Interaction,
+                        nickname: str = nextcord.SlashOption(required=True),
+                        number_of_matches: int = nextcord.SlashOption(required=True)):
         """
         Command used to gather and analyze data from Teamfight Tactics match history
 
             Args:
-                ctx: Context of the command
+                interaction: (nextcord.Interaction): Context of the command
                 nickname (str): Nickname of the player we want to find
                 number_of_matches (int): Number of matches we want to search for
 
@@ -287,28 +244,32 @@ class TftCommands(commands.Cog):
                 None
         """
         watcher = TftWatcher(getenv('APIKEYTFT'))
-        channel_check = await SettingsCommands.channel_check(ctx)
+        channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
 
         # due to API limitations, we can't collect data from more than 500 matches
         if number_of_matches >= 500 or number_of_matches <= 0:
-            await ctx.send(f"Wrong number of matches! Try between 0 - 500")
+            await interaction.send(f"Wrong number of matches! Try between 0 - 500")
             return
 
-        summoner, summoner_stats = await SettingsCommands.get_riot_stats(ctx, stats_type='TFT', nickname=nickname,
+        summoner, summoner_stats = await SettingsCommands.get_riot_stats(interaction, stats_type='TFT',
+                                                                         nickname=nickname,
                                                                          all_stats=True)
+
         # access player's match history in form of list of match ids
         match_list = watcher.match.by_puuid("europe", summoner['puuid'], number_of_matches)
+
         if not match_list:  # check if player played at least 1 match
-            await ctx.send(f"**{nickname}** didn't played any Teamfight Tactics games")
+            await interaction.response.send_message(f"**{nickname}** didn't played any Teamfight Tactics games",
+                                                    ephemeral=True)
             return
 
         # Getting data from .json files that are used to store information about Teamfight Tactics characters etc.
         all_stats = await SettingsCommands.load_json_dict("JsonData/allStats.json")
         comps = await SettingsCommands.load_json_dict("JsonData/tft6.json")
 
-        await ctx.defer()
+        await interaction.response.defer()
 
         for match in match_list:  # iterate over every match in match list
             match_detail = watcher.match.by_id("europe", match)  # getting match details for further analysis
@@ -367,13 +328,13 @@ class TftCommands(commands.Cog):
         title_nickname = nickname.lower()
         title_nickname = title_nickname.replace(" ", "")
 
-        embed = discord.Embed(
+        embed = nextcord.Embed(
             color=0x11f80d,
             title=f"{self.tftEmoji} Teamfight Tactics {nickname}'s Stats ",
             description="Click the title for advanced information on LolChess",
             url=f"https://lolchess.gg/profile/eune/{title_nickname}"
         )
-        file = discord.File(self.penguFilepath, filename="image.png")
+        file = nextcord.File(self.penguFilepath, filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
 
         if summoner_stats:
@@ -416,7 +377,7 @@ class TftCommands(commands.Cog):
             f'**{comps_sorted[4][0][5:]}** in {comps_sorted[4][1][0]} matches '
             f'with **{round((comps_sorted[4][1][1]/comps_sorted[4][1][0])*100, 2)}**% top 4 ratio\n')
         embed.set_footer(text=f'Statistics provided by {self.client.user.name}')
-        await ctx.send(embed=embed, file=file)
+        await interaction.followup.send(embed=embed, file=file)
 
 
 def setup(client):  # adding cog to our main.py file
