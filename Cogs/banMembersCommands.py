@@ -1,5 +1,5 @@
 import nextcord
-from nextcord.ext import commands  # main packages
+from nextcord.ext import commands, application_checks  # main packages
 from Cogs.settingsCommands import SettingsCommands
 
 
@@ -8,7 +8,7 @@ class BanMembersCommands(commands.Cog):
         self.client = client
 
     @nextcord.slash_command(name='dc_unban', guild_ids=[218510314835148802], force_global=True)
-    @commands.has_permissions(ban_members=True)
+    @application_checks.has_permissions(ban_members=True)
     async def dc_unban(self,
                        interaction: nextcord.Interaction,
                        nickname: str = nextcord.SlashOption(required=True),
