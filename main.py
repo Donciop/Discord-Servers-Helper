@@ -1,5 +1,5 @@
 import nextcord  # main packages
-from nextcord.ext import commands, tasks
+from nextcord.ext import commands, tasks, application_checks
 from os import listdir, getenv  # utility packages
 import datetime
 from datetime import datetime
@@ -11,7 +11,7 @@ intents = nextcord.Intents().all()
 
 # Initialize bot
 
-client = commands.Bot(command_prefix='*', intents=intents, help_command=None)
+client = commands.Bot(command_prefix='&', intents=intents, help_command=None)
 
 # Loading cogs
 
@@ -150,6 +150,14 @@ async def on_member_join(member: nextcord.Member):
 
 
 @client.event
+async def on_application_command_error(interaction: nextcord.Interaction, error):
+    if isinstance(error, application_checks.ApplicationMissingPermissions):
+        missing_perms = await SettingsCommands.format_missing_permissions(error)
+        await interaction.response.send_message(f'You don\'t have '
+                                                f'{missing_perms} permissions to run this command')
+
+
+@client.event
 async def on_command_error(ctx, error):
     """
     Error handling for exceptions when using commands. Called when bot encounters an error.
@@ -162,24 +170,24 @@ async def on_command_error(ctx, error):
             None
     """
     if isinstance(error, commands.CommandOnCooldown):  # called when you try to use command that is on cooldown.
-        embed = nextcord.Embed(color=0xeb1414)  # Discord embed formatting
-        embed.add_field(
-          name="🛑 Command Error",
-          value="Command's on cooldown. Time remaining: {}s :(".format(round(error.retry_after)),
-          inline=False
-        )
-        await ctx.send(embed=embed)  # send the embed
+        await ctx.send("Command's on cooldown. Time remaining: {}s :(".format(round(error.retry_after)))
         return
 
     if isinstance(error, commands.MissingPermissions):  # called when you don't have permission to use that command.
-        embed = nextcord.Embed(color=0xeb1414)
-        embed.add_field(
-          name="🛑 Command Error",
-          value="You don't have permissions to use this command, check *help for more info",
-          inline=False
-        )
-        await ctx.send(embed=embed)
-        return
+        missing_perms = await SettingsCommands.format_missing_permissions(error)
+        await ctx.send(f"You don't have {missing_perms} permissions to use this command, check *help for more info",
+                       delete_after=5)
+
+    if isinstance(error, commands.ChannelNotFound):
+        await ctx.send("Could not find channel", delete_after=5)
+
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("Couldn't find that command, check for any spelling errors", delete_after=5)
+
+    if isinstance(error, commands.BotMissingPermissions):
+        missing_perms = await SettingsCommands.format_missing_permissions(error)
+        await ctx.send(f'Bot is missing permissions. '
+                       f'Make sure that bot has permission to **{missing_perms}**', delete_after=5)
 
 
 @tasks.loop(minutes=1)  # task called every minute
@@ -207,4 +215,4 @@ async def before():  # wait for bot to go online to start the task
 
 
 reminder.start()  # start tasks
-client.run(getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN
