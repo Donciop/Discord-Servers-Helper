@@ -154,7 +154,7 @@ async def on_application_command_error(interaction: nextcord.Interaction, error)
     if isinstance(error, application_checks.ApplicationMissingPermissions):
         missing_perms = await SettingsCommands.format_missing_permissions(error)
         await interaction.response.send_message(f'You don\'t have '
-                                                f'{missing_perms} permissions to run this command')
+                                                f'{missing_perms}permissions to run this command')
 
 
 @client.event
