@@ -1,5 +1,5 @@
 import nextcord
-from nextcord.ext import commands
+from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
 from Cogs.settingsCommands import SettingsCommands
 
@@ -9,7 +9,7 @@ class ManageMessagesCommands(commands.Cog):
         self.client = client
 
     @nextcord.slash_command(name='dc_count_messages', guild_ids=[218510314835148802], force_global=True)
-    @commands.has_permissions(manage_messages=True)
+    @application_checks.has_permissions(manage_messages=True)
     async def dc_count_messages(self,
                                 interaction: nextcord.Interaction,
                                 channel: GuildChannel = nextcord.SlashOption(required=True,
@@ -49,6 +49,7 @@ class ManageMessagesCommands(commands.Cog):
             await interaction.followup.send(f"There were {count} messages in {channel.mention}")
 
     @nextcord.slash_command(name='clear', guild_ids=[218510314835148802], force_global=True)
+    @application_checks.has_permissions(manage_channels=True)
     async def clear(self,
                     interaction: nextcord.Interaction,
                     amount: int = nextcord.SlashOption(required=True)):
@@ -73,28 +74,6 @@ class ManageMessagesCommands(commands.Cog):
 
         # delete that amount of messages
         await interaction.channel.purge(limit=amount)
-
-    @clear.error  # decorator for handling errors from 'clear' command
-    async def clear_error(self, ctx, error):
-        """
-        Error handling for 'clear' command
-
-            Args:
-                ctx: Context of the command
-                error (nextcord.ext.commands.errors): Error that we're trying to catch
-
-            Returns:
-                None
-        """
-        if isinstance(error, commands.BadArgument):  # check if error's type is 'Bad Argument'
-            embed = nextcord.Embed(color=0xeb1414)  # style embed message
-            embed.add_field(name='🛑 Clear Error', value='Number of messages must be an decimal number', inline=False)
-            await ctx.send(embed=embed)  # send specific return message
-
-        if isinstance(error, commands.MissingRequiredArgument):
-            embed = nextcord.Embed(color=0xeb1414)
-            embed.add_field(name='🛑 Clear Error', value='You need to specify number of messages', inline=False)
-            await ctx.send(embed=embed)
 
 
 def setup(client):  # adding cog to our main.py file
