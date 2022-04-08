@@ -1,14 +1,15 @@
-import requests.exceptions
-from typing import Union
+import nextcord
 from nextcord import Interaction
 from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
+import requests.exceptions
+from typing import Union
 from pymongo import MongoClient
 from os import getenv, makedirs, path
-import nextcord
 from json import loads
 import logging
 from riotwatcher import TftWatcher, LolWatcher
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -183,14 +184,11 @@ class SettingsCommands(commands.Cog):
             await interaction.response.send_message(f'Player {nickname} is unranked', ephemeral=True)
             return summoner, summoner_stats
 
-        print(summoner_stats)
-
         if all_stats:
             return summoner, summoner_stats
         queue_found = False
         for league_type in summoner_stats:
             if league_type['queueType'] == stats_name:
-                queue_found = True
                 return summoner, league_type
             else:
                 queue_found = False
