@@ -12,7 +12,8 @@ class RoleView(nextcord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    async def button_callback(self, button: nextcord.Button, interaction: nextcord.Interaction):
+    @staticmethod
+    async def button_callback(button: nextcord.Button, interaction: nextcord.Interaction):
         role_id = int(button.custom_id.split(':')[-1])
         role = interaction.guild.get_role(role_id)
         assert isinstance(role, nextcord.Role)
@@ -69,6 +70,10 @@ class ReactionCommands(commands.Cog):
 
     @nextcord.slash_command(name='roles', guild_ids=[218510314835148802], force_global=True)
     async def roles(self, interaction: nextcord.Interaction):
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message(f'You don\'t have Administrator permissions to use this command',
+                                                    ephemeral=True)
+            return
         embed = nextcord.Embed(title='💎 Wanatawka Reaction Roles',
                                description='React to add or remove any role You want')
         await interaction.response.send_message(embed=embed, view=RoleView())
