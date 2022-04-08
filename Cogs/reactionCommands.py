@@ -1,5 +1,5 @@
 import nextcord
-from nextcord.ext import commands
+from nextcord.ext import commands, application_checks
 
 VIEW_NAME = "RoleView"
 
@@ -69,11 +69,8 @@ class ReactionCommands(commands.Cog):
         self.client.add_view(RoleView())
 
     @nextcord.slash_command(name='roles', guild_ids=[218510314835148802], force_global=True)
+    @application_checks.has_permissions(administrator=True)
     async def roles(self, interaction: nextcord.Interaction):
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message(f'You don\'t have Administrator permissions to use this command',
-                                                    ephemeral=True)
-            return
         embed = nextcord.Embed(title='💎 Wanatawka Reaction Roles',
                                description='React to add or remove any role You want')
         await interaction.response.send_message(embed=embed, view=RoleView())
