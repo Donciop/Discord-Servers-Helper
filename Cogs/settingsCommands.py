@@ -1,10 +1,11 @@
 import requests.exceptions
-from discord.ext import commands
+from nextcord import Interaction
+from nextcord.ext import commands
+from nextcord.abc import GuildChannel
 from pymongo import MongoClient
 from os import getenv, makedirs, path
-from asyncio import sleep
-import discord
-from json import loads, dump
+import nextcord
+from json import loads
 import logging
 from riotwatcher import TftWatcher, LolWatcher
 logging.basicConfig(level=logging.INFO)
@@ -31,14 +32,14 @@ class SettingsCommands(commands.Cog):
         return final_dict
 
     @staticmethod
-    async def db_connection(db: str, collection: str, *, ctx=None):
+    async def db_connection(db: str, collection: str, *, interaction: nextcord.Interaction = None):
         """
         Utility method that is used to connect to the MongoDB Database
 
             Args:
                 db (str): Name of the Database
                 collection (str): Name of the Collection in Database
-                ctx (optional): Context of the command
+                interaction (:obj:nextcord.Interaction, optional): Context of the command
 
             Returns:
                 collection: Collection from the Database
@@ -47,51 +48,48 @@ class SettingsCommands(commands.Cog):
         db = mongo_client[db]
         collection = db[collection]
         if collection is None:
-            if ctx:
-                await ctx.send('Cannot connect to the database')
-                return
-            else:
+            if interaction:
+                await interaction.response.send_message('Cannot connect to the database', ephemeral=True)
                 return
         return collection
 
     @staticmethod
-    async def channel_check(ctx):
+    async def channel_check(interaction: Interaction):
         """
         Utility method that is used to check if user is sending commands in channel that allows it
 
             Args:
-                ctx: Context of the command
+                interaction (nextcord.Interaction): ???
 
             Returns:
                 bool: True if user can send messages in this channel, False otherwise
         """
         channel_check = False
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'guild_bot_channels', ctx=ctx)
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'guild_bot_channels')
         if collection is None:
             return
-        check = collection.find_one({'_id': ctx.guild.id})
+        check = collection.find_one({'_id': interaction.guild_id})
         if not check:
             channel_check = True
         else:
             for bot_channel in check['bot_channels']:
-                if ctx.channel.id == int(bot_channel):
+                if interaction.channel_id == int(bot_channel):
                     channel_check = True
 
         # sends specific message if command is used in forbidden channel
         if not channel_check:
-            await ctx.channel.send(f'Please, use bot commands in bot channel to prevent spam')
-            await sleep(2)
-            await ctx.channel.purge(limit=1)
+            await interaction.response.send_message(f'Please, use bot commands in bot channel to prevent spam',
+                                                    ephemeral=True)
         return channel_check
 
     @staticmethod
-    async def create_attachments_dir(*, filepath: str, channel: discord.TextChannel):
+    async def create_attachments_dir(*, filepath: str, channel: GuildChannel):
         """
         Utility method used to create specific directory when using *save_attachments command
 
             Args:
                 filepath (str): Filepath to the directory that we want to create our subdirectory
-                channel (discord.Channel): Discord Text Channel in which we want to save attachments
+                channel (nextcord.Channel): Discord Text Channel in which we want to save attachments
 
             Returns:
                 None
@@ -106,15 +104,15 @@ class SettingsCommands(commands.Cog):
 
     @staticmethod
     async def save_attachment(*, filepath: str, counter: int,
-                              channel: discord.TextChannel, msg: discord.Message):
+                              channel: GuildChannel, msg: nextcord.Message):
         """
         Utility method used to categorize Attachments sent to channels
 
             Args:
                 filepath (str): Filepath to the directory that we want to save our files in
                 counter (int):  Number of attachment that we're trying to save
-                channel (discord.Channel): Discord Channel in which we're saving attachments
-                msg (discord.Message): Discord Message that contains our attachment
+                channel (nextcord.GuildChannel): Discord Channel in which we're saving attachments
+                msg (nextcord.Message): Discord Message that contains our attachment
 
             Returns:
                 bool: True if successful, False otherwise
@@ -138,7 +136,7 @@ class SettingsCommands(commands.Cog):
                         try:
                             await attachment.save(fp=fp)
                             return True
-                        except discord.HTTPException:
+                        except nextcord.HTTPException:
                             return False
             if not filetype_found:
                 try:
@@ -146,16 +144,16 @@ class SettingsCommands(commands.Cog):
                          f'_{i_counter}_{msg.author.name}_{created_time}.{str(attachment.filename)[:-5]}'
                     await attachment.save(fp=fp)
                     return True
-                except discord.HTTPException:
+                except nextcord.HTTPException:
                     return False
 
     @staticmethod
-    async def get_riot_stats(ctx, *, stats_type: str, nickname: str, all_stats=False):
+    async def get_riot_stats(interaction: nextcord.Interaction, *, stats_type: str, nickname: str, all_stats=False):
         """
         Utility method used to gather information about player's rank
 
             Args:
-                ctx: Context of the command
+                interaction (nextcord.Interaction): Context of the command
                 stats_type (str): Whether we gather stats from League of Legends (LOL) or Teamfight Tactics (TFT)
                 nickname (str): Player's nickname
                 all_stats (bool, optional): if True, gather information about all queue types
@@ -166,35 +164,38 @@ class SettingsCommands(commands.Cog):
                 summoner_stats (dict): Information about player's rank
         """
         watcher = TftWatcher(getenv('APIKEYTFT'))
+        stats_name = 'RANKED_TFT'
         if stats_type.lower() == 'lol':
             watcher = LolWatcher(getenv('APIKEYLOL'))
-
+            stats_name = 'RANKED_SOLO_5x5'
         try:
             summoner = watcher.summoner.by_name('eun1', nickname)
         except requests.exceptions.HTTPError:
             summoner_stats = []
             summoner = ''
-            await ctx.send(f"Can't find **{nickname}** on EUNE server.")
+            await interaction.response.send_message(f'Can\'t find **{nickname}** on EUNE server', ephemeral=True)
             return summoner, summoner_stats
 
         summoner_stats = watcher.league.by_summoner('eun1', summoner['id'])
         if not summoner_stats:
             summoner_stats = []
-            await ctx.send(f'Player {nickname} is unranked')
+            await interaction.response.send_message(f'Player {nickname} is unranked', ephemeral=True)
             return summoner, summoner_stats
+
+        print(summoner_stats)
 
         if all_stats:
             return summoner, summoner_stats
         queue_found = False
         for league_type in summoner_stats:
-            if league_type['queueType'] == 'RANKED_TFT':
+            if league_type['queueType'] == stats_name:
                 queue_found = True
                 return summoner, league_type
             else:
                 queue_found = False
         if not queue_found:
             summoner_stats = []
-            await ctx.send(f'Player {nickname} is unranked')
+            await interaction.response.send_message(f'Player {nickname} is unranked', ephemeral=True)
             return summoner, summoner_stats
 
     @staticmethod
@@ -208,10 +209,9 @@ class SettingsCommands(commands.Cog):
                 rank (bool): if True, method will return local rating
 
             Returns:
-                tier_emoji: custom emoji based on player's rank
+                tier_emoji: custom emoji based on player's ranking
                 rank (int): calculated rating for local leaderboard
         """
-
         rank_dict = await SettingsCommands.load_json_dict("JsonData/rankDict.json")
         rank_list = ['I', 'II', 'III', 'IV']
         local_rank = 0
@@ -219,23 +219,46 @@ class SettingsCommands(commands.Cog):
         if not summoner_rank:
             return local_tier_emoji, local_rank
         for tier in rank_dict:  # iterate over every tier until we find player's tier
-            if summoner_rank[0]['tier'] != tier:
+            if summoner_rank['tier'] != tier:
                 local_rank += 400
             else:
                 local_tier_emoji = rank_dict[tier]
                 break
         for lol_rank in rank_list:  # iterate over every rank until we find player's rank
-            if summoner_rank[0]['rank'] != lol_rank:
+            if summoner_rank['rank'] != lol_rank:
                 local_rank += 100
             else:
                 break
-        local_rank += summoner_rank[0]['leaguePoints']  # calculate final rating for leaderboard
+        local_rank += summoner_rank['leaguePoints']  # calculate final rating for leaderboard
         if rank and tier_emoji:
             return local_tier_emoji, local_rank
-        elif rank:
+        elif not tier_emoji:
             return rank
         else:
             return local_tier_emoji
+
+    @staticmethod
+    async def upload_members_to_database(guild: nextcord.Guild):
+        """
+        Utility method used to import server members into database
+
+            Returns:
+                None
+        """
+
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+        if collection is None:
+            return
+        for member in guild.members:
+            if member.bot:
+                continue
+            check = collection.find_one({'_id': member.id})
+            if not check:
+                collection.insert_one({'_id': member.id, 'messages_sent': 0})
+            else:
+                collection.update_one({'_id': member.id},
+                                      {'$set': {'messages_sent': 0}})
+
 
 def setup(client):
     client.add_cog(SettingsCommands(client))
