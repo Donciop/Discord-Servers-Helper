@@ -1,5 +1,5 @@
 import nextcord
-from nextcord.ext import commands
+from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
 from Cogs.settingsCommands import SettingsCommands
 # from asyncio import sleep
@@ -11,6 +11,7 @@ class ManageChannelsCommands(commands.Cog):
         self.client = client
 
     @nextcord.slash_command(name='add_guild_channel', guild_ids=[218510314835148802], force_global=True)
+    @application_checks.has_permissions(manage_channels=True)
     async def add_guild_channel(self, interaction: nextcord.Interaction,
                                 channel: GuildChannel = nextcord.SlashOption(required=True,
                                                                              channel_types=[
@@ -55,6 +56,7 @@ class ManageChannelsCommands(commands.Cog):
                                                 ephemeral=True)
 
     @nextcord.slash_command(name='remove_guild_channel', guild_ids=[218510314835148802], force_global=True)
+    @application_checks.has_permissions(manage_channels=True)
     async def remove_guild_channel(self, interaction: nextcord.Interaction,
                                    channel: GuildChannel = nextcord.SlashOption(required=True,
                                                                                 channel_types=[
@@ -97,6 +99,7 @@ class ManageChannelsCommands(commands.Cog):
         await interaction.response.send_message(f'Removed {channel.mention} from the database', ephemeral=True)
 
     @nextcord.slash_command(name='dc_mute', guild_ids=[218510314835148802], force_global=True)
+    @application_checks.has_permissions(manage_channels=True)
     async def dc_mute(self, interaction: nextcord.Interaction,
                       member: nextcord.Member = nextcord.SlashOption(required=True),
                       reason: str = nextcord.SlashOption(required=False)):
@@ -129,6 +132,7 @@ class ManageChannelsCommands(commands.Cog):
                                                     f"**{interaction.user.mention}**")
 
     @nextcord.slash_command(name='dc_deaf', guild_ids=[218510314835148802], force_global=True)
+    @application_checks.has_permissions(manage_channels=True)
     async def dc_deaf(self, interaction: nextcord.Interaction,
                       member: nextcord.Member = nextcord.SlashOption(required=True),
                       reason: str = nextcord.SlashOption(required=False)):
