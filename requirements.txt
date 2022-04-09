@@ -3,3 +3,4 @@ requests
 pymongo
 dnspython
 nextcord
+youtube_dl
