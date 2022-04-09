@@ -3,17 +3,12 @@ from nextcord.ext import commands
 from riotwatcher import LolWatcher  # RIOT API wrapper
 import os
 from Cogs.settingsCommands import SettingsCommands
+from config import LOL_THUMBNAIL_FILEPATH
 
 
 class LolCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        self.watcher = LolWatcher(os.getenv('APIKEYLOL'))  # RIOT API KEY
-        self.region = 'eun1'  # used in Riotwatcher to determine which region we're looking for
-        self.logoFilepath = "Media/LOL-logo.jpg"  # filepaths for files send with Discord embeds
 
     @nextcord.slash_command(name='lol_rank', guild_ids=[218510314835148802], force_global=True)
     async def lol_rank(self,
@@ -46,7 +41,7 @@ class LolCommands(commands.Cog):
         )
 
         file = nextcord.File(  # creating file to send image along the embed message
-            self.logoFilepath,  # file path to image
+            LOL_THUMBNAIL_FILEPATH,  # file path to image
             filename="image.jpg"  # name of the file
         )
 
@@ -86,16 +81,17 @@ class LolCommands(commands.Cog):
             Returns:
                 None
         """
+        watcher = LolWatcher(os.getenv('APIKEYLOL'))
         channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
         team = team_champs = team_ranks = []
 
         # check the latest version of League of Legends
-        latest = self.watcher.data_dragon.versions_for_region('eune')['n']['champion']
+        latest = watcher.data_dragon.versions_for_region('eune')['n']['champion']
 
         # access data from external file contains information about characters in League of Legends
-        static_champ_list = self.watcher.data_dragon.champions(latest, False, 'en_US')
+        static_champ_list = watcher.data_dragon.champions(latest, False, 'en_US')
 
         # iterate over every champion to assign them to corresponding champion's ID
         champ_dict = {}
@@ -108,7 +104,7 @@ class LolCommands(commands.Cog):
             return
 
         # access data about player's live game
-        live_game = self.watcher.spectator.by_summoner(self.region, summoner['id'])
+        live_game = watcher.spectator.by_summoner('eun1', summoner['id'])
         if not live_game:
             await interaction.response.send_message(f"{nickname}'s not in game")
             return
