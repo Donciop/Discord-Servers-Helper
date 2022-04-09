@@ -256,7 +256,7 @@ class EverybodyCommands(commands.Cog):
         channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
+        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
         if collection is None:
             return
         if not collection.count_documents({"_id": member.id}):
