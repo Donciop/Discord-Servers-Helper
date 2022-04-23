@@ -71,6 +71,15 @@ class ReactionCommands(commands.Cog):
     @nextcord.slash_command(name='roles', guild_ids=[218510314835148802], force_global=True)
     @application_checks.has_permissions(administrator=True)
     async def roles(self, interaction: nextcord.Interaction):
+        """
+        Utility config method for #role channel. Needs OWNER permissions.
+
+            Args:
+               interaction (nextcord.Interaction): Context of the command
+
+            Returns:
+                None
+        """
         embed = nextcord.Embed(title='💎 Wanatawka Reaction Roles',
                                description='React to add or remove any role You want')
         await interaction.response.send_message(embed=embed, view=RoleView())
