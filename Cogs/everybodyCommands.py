@@ -2,6 +2,7 @@ import nextcord
 from pymongo import DESCENDING
 from asyncio import sleep
 from nextcord.ext import commands
+from nextcord.abc import GuildChannel
 from nextcord import SlashOption
 from Cogs.settingsCommands import SettingsCommands
 
@@ -133,10 +134,10 @@ class EverybodyCommands(commands.Cog):
         embed.set_footer(text=f"Copyrighted by {interaction.guild.owner.name} #{interaction.guild.owner.discriminator}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @nextcord.slash_command(name='who_online', guild_ids=[218510314835148802], force_global=True)
-    async def who_online(self, interaction: nextcord.Interaction):
+    @nextcord.slash_command(name='dc_who_online', guild_ids=[218510314835148802], force_global=True)
+    async def dc_who_online(self, interaction: nextcord.Interaction):
         """
-        Command used to display a list of online members that has selected role
+        Display a list of online members that has selected role
 
             Args:
                 interaction: (nextcord.Interaction): Context of the command
@@ -156,7 +157,7 @@ class EverybodyCommands(commands.Cog):
     async def dc_poke(self, interaction: nextcord.Interaction,
                       member: nextcord.Member = SlashOption(required=True)):
         """
-        Command used to imitate TeamSpeak3's 'poke' function
+        Imitate TeamSpeak3's 'poke' function
 
             Args:
                 interaction: (nextcord.Interaction): Context of the command
@@ -203,10 +204,10 @@ class EverybodyCommands(commands.Cog):
     @nextcord.slash_command(name='dc_bans', guild_ids=[218510314835148802], force_global=True)
     async def dc_bans(self, interaction: nextcord.Interaction):
         """
-        Command used to show banned members in Discord's server
+        Show banned members in Discord's server
 
             Args:
-                interaction: (nextcord.Interaction): Context of the command
+                interaction (nextcord.Interaction): Context of the command
 
             Returns:
                 None
@@ -240,14 +241,53 @@ class EverybodyCommands(commands.Cog):
         embed.set_thumbnail(url="attachment://image.png")
         await interaction.response.send_message(embed=embed, file=file)
 
+    @nextcord.slash_command(name='dc_count_messages', guild_ids=[218510314835148802], force_global=True)
+    async def dc_count_messages(self,
+                                interaction: nextcord.Interaction,
+                                channel: GuildChannel = nextcord.SlashOption(required=True,
+                                                                             channel_types=[nextcord.ChannelType.text]),
+                                member: nextcord.Member = nextcord.SlashOption(required=False)):
+        """
+        Count all messages in specific channel. You can also count all messages from specific user.
+
+            Args:
+                interaction (nextcord.Interaction): Context of the command
+                channel (nextcord.GuildChannel): Discord Channel in which we want to count messages
+                member (:obj:nextcord.Member, optional): Discord Member from whom we want to count messages
+
+            Returns:
+                None
+        """
+        channel_check = await SettingsCommands.channel_check(interaction)
+        if not channel_check:
+            return
+
+        if not interaction.user.guild_permissions.manage_messages:
+            await interaction.response.send_message('You don\'t have permission to Manage Channels to use this command',
+                                                    ephemeral=True)
+            return
+
+        await interaction.response.defer()
+        count = 0
+        if member:
+            async for msg in channel.history(limit=None):  # iterate over every message in channel's history
+                if msg.author == member:
+                    count += 1  # increment count for every message
+            # display amount of messages in channel
+            await interaction.followup.send(f"There were {count} messages in {channel.mention} from {member.mention}")
+        else:
+            async for _ in channel.history(limit=None):
+                count += 1
+            await interaction.followup.send(f"There were {count} messages in {channel.mention}")
+
     @nextcord.slash_command(name='dc_stats_messages', guild_ids=[218510314835148802], force_global=True)
     async def dc_stats_messages(self, interaction: nextcord.Interaction,
                                 member: nextcord.Member = SlashOption(required=True)):
         """
-        Command used to show how many messages the member has sent
+        Shows how many messages the member has sent
 
             Args:
-                interaction: (nextcord.Interaction): Context of the command
+                interaction (nextcord.Interaction): Context of the command
                 member (nextcord.Member): Discord Member from whom we want to collect amount of messages
 
             Returns:
@@ -274,10 +314,11 @@ class EverybodyCommands(commands.Cog):
     async def dc_stats_online(self, interaction: nextcord.Interaction,
                               member: nextcord.Member = SlashOption(required=True)):
         """
-        Command used to show for how long the member has been online
+        Show for how long the member has been online
 
             Args:
-                Context of the command
+                interaction (nextcord.Interaction): Context of the command
+                member (nextcord.Member): Member that we want to check
 
             Returns:
                 None
@@ -325,10 +366,77 @@ class EverybodyCommands(commands.Cog):
                 f"{time_online['time_online'].second}s** so far!")
             return
 
-    @nextcord.slash_command(name='top_members', guild_ids=[218510314835148802], force_global=True)
-    async def top_members(self, interaction: nextcord.Interaction):
+    @nextcord.slash_command(name='dc_msg_leaderboard', guild_ids=[218510314835148802], force_global=True)
+    async def dc_msg_leaderboard(self, interaction: nextcord.Interaction,
+                                 channel: GuildChannel = nextcord.SlashOption(required=True,
+                                                                              channel_types=[
+                                                                                  nextcord.ChannelType.text])):
         """
-        Command used to show top members based on messages sent
+        Leaderboard of sent messages in specific channel
+
+            Args:
+                interaction (nextcord.Interaction): Context of the command
+                channel (nextcord.TextChannel): Discord Text Channel in which we want to count messages
+
+            Returns:
+                None
+        """
+        channel_check = await SettingsCommands.channel_check(interaction)
+        if not channel_check:
+            return
+
+        await interaction.response.defer()
+        leaderboard_not_sorted = {}
+        async for msg in channel.history(limit=None):
+            if str(msg.author.name) in leaderboard_not_sorted:
+                leaderboard_not_sorted[str(msg.author.name)] += 1
+            else:
+                leaderboard_not_sorted[str(msg.author.name)] = 1
+        leaderboard_sorted = sorted(leaderboard_not_sorted.items(), key=lambda x: x[1], reverse=True)
+        iterator = 1
+        file = nextcord.File(  # creating file to send image along the embed message
+            "Media/trophy.png",  # file path to image
+            filename="image.png"  # name of the file
+        )
+        embed = nextcord.Embed(
+            color=0x11f80d,
+            description=f'Leaderboard of the most active users in {channel.mention}',
+            title="🏆 Leaderboard 🏆"
+        )
+        embed.set_thumbnail(url="attachment://image.png")
+        for k, v in leaderboard_sorted:
+            if iterator <= 10 and v > 0:
+                if iterator == 1:
+                    embed.add_field(
+                        name=f"🥇 {iterator}. {k}",
+                        value=f"{v} messages",
+                        inline=False
+                    )
+                elif iterator == 2:
+                    embed.add_field(
+                        name=f"🥈 {iterator}. {k}",
+                        value=f"{v} messages",
+                        inline=False
+                    )
+                elif iterator == 3:
+                    embed.add_field(
+                        name=f"🥉 {iterator}. {k}",
+                        value=f"{v} messages",
+                        inline=False
+                    )
+                else:
+                    embed.add_field(
+                        name=f"{iterator}. {k}",
+                        value=f"{v} messages",
+                        inline=False
+                    )
+            iterator += 1
+        await interaction.followup.send(file=file, embed=embed)
+
+    @nextcord.slash_command(name='dc_global_msg_leaderboard', guild_ids=[218510314835148802], force_global=True)
+    async def dc_global_msg_leaderboard(self, interaction: nextcord.Interaction):
+        """
+        Show global leaderboard based on messages sent
 
             Args:
                 interaction: (nextcord.Interaction): Context of the command
