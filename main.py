@@ -11,7 +11,7 @@ intents = nextcord.Intents().all()
 
 # Initialize bot
 
-client = commands.Bot(command_prefix='*', intents=intents, help_command=None)
+client = commands.Bot(command_prefix='&', intents=intents, help_command=None)
 
 # Loading cogs
 
@@ -170,7 +170,7 @@ async def on_command_error(ctx, error):
             None
     """
     if isinstance(error, commands.CommandOnCooldown):  # called when you try to use command that is on cooldown.
-        await ctx.send("Command's on cooldown. Time remaining: {}s :(".format(round(error.retry_after)))
+        await ctx.send("Command's on cooldown. Time remaining: {}s :(".format(round(error.retry_after)), delete_after=5)
         return
 
     if isinstance(error, commands.MissingPermissions):  # called when you don't have permission to use that command.
@@ -215,4 +215,4 @@ async def before():  # wait for bot to go online to start the task
 
 
 reminder.start()  # start tasks
-client.run(getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN
