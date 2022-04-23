@@ -7,14 +7,15 @@ class BanMembersCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @nextcord.slash_command(name='dc_unban', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_unban', guild_ids=[218510314835148802],
+                            description='Unban user. Needs BAN MEMBERS permission', force_global=True)
     @application_checks.has_permissions(ban_members=True)
     async def dc_unban(self,
                        interaction: nextcord.Interaction,
                        nickname: str = nextcord.SlashOption(required=True),
                        discriminator: str = nextcord.SlashOption(required=True)):
         """
-        Command used to un-ban members that are banned on server (guild)
+        Command used to un-ban members that are banned on server (guild). Needs BAN MEMBERS permission to use.
 
             Args:
                 interaction: (nextcord.Interaction): Context of the command

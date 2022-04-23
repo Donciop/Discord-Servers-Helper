@@ -17,7 +17,7 @@ class ManageChannelsCommands(commands.Cog):
                                                                              channel_types=[
                                                                                  nextcord.ChannelType.text])):
         """
-        Command used to add channels that the Bot can be used in
+        Command used to add channels that the Bot can be used in. Needs MANAGE CHANNELS permission.
 
             Args:
                 interaction (nextcord.Interaction): Context of the command
@@ -62,7 +62,7 @@ class ManageChannelsCommands(commands.Cog):
                                                                                 channel_types=[
                                                                                     nextcord.ChannelType.text])):
         """
-        Command used to add channels that the Bot can be used in
+        Command used to remove channels that the Bot can be used in. Needs MANAGE CHANNELS permission.
 
             Args:
                 interaction (nextcord.Interaction): Context of the command
@@ -104,7 +104,7 @@ class ManageChannelsCommands(commands.Cog):
                       member: nextcord.Member = nextcord.SlashOption(required=True),
                       reason: str = nextcord.SlashOption(required=False)):
         """
-        Command used to mute someone, with or without specified reason
+        Command used to mute someone, with or without specified reason. Needs MANAGE CHANNELS permission.
 
             Args:
                 interaction: (nextcord.Interaction): Context of the command
@@ -137,7 +137,7 @@ class ManageChannelsCommands(commands.Cog):
                       member: nextcord.Member = nextcord.SlashOption(required=True),
                       reason: str = nextcord.SlashOption(required=False)):
         """
-        Command used to deafen someone, with or without specified reason
+        Command used to deafen someone, with or without specified reason. Needs MANAGE CHANNELS permission.
 
             Args:
                 interaction: (nextcord.Interaction): Context of the command
