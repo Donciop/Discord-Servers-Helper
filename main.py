@@ -9,7 +9,7 @@ intents = nextcord.Intents().all()
 
 # Initialize bot
 
-client = commands.Bot(command_prefix='&', intents=intents, help_command=None)
+client = commands.Bot(command_prefix='*', intents=intents, help_command=None)
 
 # Loading cogs
 
@@ -187,4 +187,4 @@ async def on_command_error(ctx, error):
         await ctx.send(f'Bot is missing permissions. '
                        f'Make sure that bot has permission to **{missing_perms}**', delete_after=5)
 
-client.run(getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
