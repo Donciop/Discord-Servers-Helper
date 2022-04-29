@@ -1,8 +1,6 @@
 import nextcord  # main packages
-from nextcord.ext import commands, tasks, application_checks
+from nextcord.ext import commands, application_checks
 from os import listdir, getenv  # utility packages
-import datetime
-from datetime import datetime
 from Cogs.settingsCommands import SettingsCommands
 
 # Making sure the bot has all the permissions
@@ -189,30 +187,4 @@ async def on_command_error(ctx, error):
         await ctx.send(f'Bot is missing permissions. '
                        f'Make sure that bot has permission to **{missing_perms}**', delete_after=5)
 
-
-@tasks.loop(minutes=1)  # task called every minute
-async def reminder():
-    """ Task that is responsible for checking time and is called every 12 hours. """
-    current_time = datetime.now()  # get current time
-    bot_channel = client.get_channel(796794980810620948)  # check if we're sending message in right channel
-    if current_time.hour == 10 and current_time.minute == 0:
-        await bot_channel.send("""
-        It's high noon!
-
-Please vote for my second bot, **Discord Wordsy**, so I could have Alak Kebab once a week.
-https://top.gg/bot/934989894995021866/vote""")
-    if current_time.hour == 22 and current_time.minute == 0:
-        await bot_channel.send("""
-        It's midnight!
-
-Please vote for my second bot, **Discord Wordsy**, so I could have Alak Kebab once a week.
-https://top.gg/bot/934989894995021866/vote""")
-
-
-@reminder.before_loop
-async def before():  # wait for bot to go online to start the task
-    await client.wait_until_ready()
-
-
-reminder.start()  # start tasks
 client.run(getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN
