@@ -1,7 +1,7 @@
 import nextcord
 from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
-from Cogs.settingsCommands import SettingsCommands
+from Cogs.settingsCommands import SettingsCommands, FilesManager
 import random
 
 
@@ -41,8 +41,8 @@ class AdministratorCommands(commands.Cog):
         async for msg in channel.history(limit=None):  # iterate over every message in channel's history
             if not msg.attachments:
                 continue
-            attachment_saved = await SettingsCommands.save_attachment(counter=counter, filepath=filepath,
-                                                                      channel=channel, msg=msg)
+            attachment_saved = await FilesManager.save_attachment(counter=counter, filepath=filepath,
+                                                                  channel=channel, msg=msg)
             if attachment_saved:
                 attachment_saved_amount += 1
             else:
