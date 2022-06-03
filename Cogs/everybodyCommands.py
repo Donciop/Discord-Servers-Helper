@@ -30,7 +30,7 @@ class EverybodyCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @nextcord.slash_command(name='help', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='help', guild_ids=[218510314835148802])
     async def help(self, interaction: nextcord.Interaction):
         """
         Basic help command, shows information about all the available commands
@@ -134,7 +134,7 @@ class EverybodyCommands(commands.Cog):
         embed.set_footer(text=f"Copyrighted by {interaction.guild.owner.name} #{interaction.guild.owner.discriminator}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @nextcord.slash_command(name='dc_who_online', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_who_online', guild_ids=[218510314835148802])
     async def dc_who_online(self, interaction: nextcord.Interaction):
         """
         Display a list of online members that has selected role
@@ -153,7 +153,7 @@ class EverybodyCommands(commands.Cog):
 
         await interaction.response.send_message('Pick a role', view=view)
 
-    @nextcord.slash_command(name='dc_poke', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_poke', guild_ids=[218510314835148802])
     async def dc_poke(self, interaction: nextcord.Interaction,
                       member: nextcord.Member = SlashOption(required=True)):
         """
@@ -201,7 +201,7 @@ class EverybodyCommands(commands.Cog):
                                         f"You've poked {member.display_name}")
         return
 
-    @nextcord.slash_command(name='dc_bans', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_bans', guild_ids=[218510314835148802])
     async def dc_bans(self, interaction: nextcord.Interaction):
         """
         Show banned members in Discord's server
@@ -213,17 +213,23 @@ class EverybodyCommands(commands.Cog):
                 None
         """
         channel_check = await SettingsCommands.channel_check(interaction)
+
         if not channel_check:
             return
+
         banned_users = await interaction.guild.bans()
+
         embed = nextcord.Embed(
           color=0xeb1414,
           title="👮‍♂ BANNED USERS 👮‍♂",
           description="For advanced information, ask administration or moderators."
         )
+
         audit_logs = {}
+
         async for entry in interaction.guild.audit_logs(action=nextcord.AuditLogAction.ban):
             audit_logs[entry.target.name] = entry.user.name
+
         for banEntry in banned_users:
             if str(banEntry.user.name) in audit_logs:
                 embed.add_field(
@@ -237,11 +243,13 @@ class EverybodyCommands(commands.Cog):
                   value="\u200B",
                   inline=False
                 )
+
         file = nextcord.File("Media/jail.png", filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
+
         await interaction.response.send_message(embed=embed, file=file)
 
-    @nextcord.slash_command(name='dc_count_messages', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_count_messages', guild_ids=[218510314835148802])
     async def dc_count_messages(self,
                                 interaction: nextcord.Interaction,
                                 channel: GuildChannel = nextcord.SlashOption(required=True,
@@ -262,12 +270,8 @@ class EverybodyCommands(commands.Cog):
         if not channel_check:
             return
 
-        if not interaction.user.guild_permissions.manage_messages:
-            await interaction.response.send_message('You don\'t have permission to Manage Channels to use this command',
-                                                    ephemeral=True)
-            return
-
         await interaction.response.defer()
+
         count = 0
         if member:
             async for msg in channel.history(limit=None):  # iterate over every message in channel's history
@@ -280,7 +284,7 @@ class EverybodyCommands(commands.Cog):
                 count += 1
             await interaction.followup.send(f"There were {count} messages in {channel.mention}")
 
-    @nextcord.slash_command(name='dc_stats_messages', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_stats_messages', guild_ids=[218510314835148802])
     async def dc_stats_messages(self, interaction: nextcord.Interaction,
                                 member: nextcord.Member = SlashOption(required=True)):
         """
@@ -296,12 +300,15 @@ class EverybodyCommands(commands.Cog):
         channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
             return
+
         collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
         if collection is None:
             return
+
         if not collection.count_documents({"_id": member.id}):
             await interaction.response.send_message(f"{member.mention} is a Bot, or isn't in our Database yet!")
             return
+
         if collection.find_one({"_id": member.id}):
             messages_sent = collection.find_one({'_id': member.id}, {'messages_sent': 1})
             await interaction.response.send_message(f"{member.mention} had written"
@@ -310,7 +317,7 @@ class EverybodyCommands(commands.Cog):
             await interaction.response.send_message(f"{member.mention}"
                                                     f" had not written any messages so far.")
 
-    @nextcord.slash_command(name='dc_stats_online', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_stats_online', guild_ids=[218510314835148802])
     async def dc_stats_online(self, interaction: nextcord.Interaction,
                               member: nextcord.Member = SlashOption(required=True)):
         """
@@ -366,7 +373,7 @@ class EverybodyCommands(commands.Cog):
                 f"{time_online['time_online'].second}s** so far!")
             return
 
-    @nextcord.slash_command(name='dc_msg_leaderboard', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_msg_leaderboard', guild_ids=[218510314835148802])
     async def dc_msg_leaderboard(self, interaction: nextcord.Interaction,
                                  channel: GuildChannel = nextcord.SlashOption(required=True,
                                                                               channel_types=[
@@ -386,12 +393,15 @@ class EverybodyCommands(commands.Cog):
             return
 
         await interaction.response.defer()
+
         leaderboard_not_sorted = {}
+
         async for msg in channel.history(limit=None):
             if str(msg.author.name) in leaderboard_not_sorted:
                 leaderboard_not_sorted[str(msg.author.name)] += 1
             else:
                 leaderboard_not_sorted[str(msg.author.name)] = 1
+
         leaderboard_sorted = sorted(leaderboard_not_sorted.items(), key=lambda x: x[1], reverse=True)
         iterator = 1
         file = nextcord.File(  # creating file to send image along the embed message
@@ -433,7 +443,7 @@ class EverybodyCommands(commands.Cog):
             iterator += 1
         await interaction.followup.send(file=file, embed=embed)
 
-    @nextcord.slash_command(name='dc_global_msg_leaderboard', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_global_msg_leaderboard', guild_ids=[218510314835148802])
     async def dc_global_msg_leaderboard(self, interaction: nextcord.Interaction):
         """
         Show global leaderboard based on messages sent
@@ -456,11 +466,13 @@ class EverybodyCommands(commands.Cog):
             "Media/trophy.png",  # file path to image
             filename="image.png"  # name of the file
         )
+
         embed = nextcord.Embed(
             color=0x11f80d,
             description=f'Leaderboard of the most active users in {interaction.guild.name}',
             title="🏆 Leaderboard 🏆"
         )
+
         embed.set_thumbnail(url="attachment://image.png")
 
         for iterator, user in enumerate(collection.find().sort('messages_sent', DESCENDING).limit(10)):
