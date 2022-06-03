@@ -6,7 +6,7 @@ class ManageMessagesCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @nextcord.slash_command(name='clear', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='clear', guild_ids=[218510314835148802])
     @application_checks.has_permissions(manage_channels=True)
     async def clear(self,
                     interaction: nextcord.Interaction,

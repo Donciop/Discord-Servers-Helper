@@ -2,15 +2,13 @@ import nextcord
 from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
 from Cogs.settingsCommands import SettingsCommands
-# from asyncio import sleep
-# from random import randint
 
 
 class ManageChannelsCommands(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @nextcord.slash_command(name='add_guild_channel', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='add_guild_channel', guild_ids=[218510314835148802])
     @application_checks.has_permissions(manage_channels=True)
     async def add_guild_channel(self, interaction: nextcord.Interaction,
                                 channel: GuildChannel = nextcord.SlashOption(required=True,
@@ -28,11 +26,6 @@ class ManageChannelsCommands(commands.Cog):
         """
         channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
-            return
-
-        if not interaction.user.guild_permissions.manage_channels:
-            await interaction.response.send_message('You don\'t have permission to Manage Channels to use this command',
-                                                    ephemeral=True)
             return
 
         collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'guild_bot_channels')
@@ -55,7 +48,7 @@ class ManageChannelsCommands(commands.Cog):
         await interaction.response.send_message(f'{channel.mention} successfully added to the database!',
                                                 ephemeral=True)
 
-    @nextcord.slash_command(name='remove_guild_channel', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='remove_guild_channel', guild_ids=[218510314835148802])
     @application_checks.has_permissions(manage_channels=True)
     async def remove_guild_channel(self, interaction: nextcord.Interaction,
                                    channel: GuildChannel = nextcord.SlashOption(required=True,
@@ -98,7 +91,7 @@ class ManageChannelsCommands(commands.Cog):
                               {'$pull': {'bot_channels': channel.id}})
         await interaction.response.send_message(f'Removed {channel.mention} from the database', ephemeral=True)
 
-    @nextcord.slash_command(name='dc_mute', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_mute', guild_ids=[218510314835148802])
     @application_checks.has_permissions(manage_channels=True)
     async def dc_mute(self, interaction: nextcord.Interaction,
                       member: nextcord.Member = nextcord.SlashOption(required=True),
@@ -131,7 +124,7 @@ class ManageChannelsCommands(commands.Cog):
             await interaction.response.send_message(f"**{member.mention}** was muted by "
                                                     f"**{interaction.user.mention}**")
 
-    @nextcord.slash_command(name='dc_deaf', guild_ids=[218510314835148802], force_global=True)
+    @nextcord.slash_command(name='dc_deaf', guild_ids=[218510314835148802])
     @application_checks.has_permissions(manage_channels=True)
     async def dc_deaf(self, interaction: nextcord.Interaction,
                       member: nextcord.Member = nextcord.SlashOption(required=True),
@@ -164,50 +157,6 @@ class ManageChannelsCommands(commands.Cog):
         else:
             await interaction.response.send_message(f"**{member.mention}** "
                                                     f"was deafened by **{interaction.user.mention}**")
-
-    # @nextcord.slash_command(name='mute_cf', guild_ids=[218510314835148802], force_global=True)
-    # @commands.has_permissions(administrator=True)
-    # @commands.cooldown(1, 181, commands.BucketType.user)
-    # async def mute_cf(self, interaction: nextcord.Interaction,
-    #                   member: nextcord.Member = nextcord.SlashOption(required=True)):
-    #     """
-    #     Command used to gamble with someone, whether You or someone else is getting muted
-    #
-    #         Args:
-    #             interaction: (nextcord.Interaction): Context of the command
-    #             member (nextcord.Member): Member that we want to gamble with
-    #
-    #         Returns:
-    #             None
-    #     """
-    #     channel_check = await SettingsCommands.channel_check(interaction)
-    #     if not channel_check:
-    #         return
-    #     mute_minutes_self = mute_minutes = 0
-    #     number = randint(0, 100)
-    #     if interaction.message.author == member:
-    #         await interaction.response.send_message(f'🛑 Mute Coinflip Failed\n'
-    #                                                 f'You can not coinflip with yourself')
-    #         return
-    #     if number >= 50:
-    #         await member.edit(mute=True)
-    #         await interaction.response.send_message(f'✅ Mute Coinflip Successful\n'
-    #                                                 f'You have rolled {str(number)} and '
-    #                                                 f'muted {member.mention} for 30 seconds')
-    #         mute_minutes += 1
-    #     else:
-    #         await interaction.user.edit(mute=True)
-    #         await interaction.response.send_message(f'🛑 Mute Coinflip Failed\n'
-    #                                                 f'You have rolled {str(number)} and '
-    #                                                 f'failed to mute {member.mention}, '
-    #                                                 f'however you got muted for 2 minutes')
-    #         mute_minutes_self += 2
-    #     if mute_minutes_self > 0:
-    #         await sleep(mute_minutes_self * 60)
-    #         await interaction.user.edit(mute=False)
-    #     if mute_minutes > 0:
-    #         await sleep(mute_minutes * 30)
-    #         await member.edit(mute=False)
 
 
 def setup(client):
