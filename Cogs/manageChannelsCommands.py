@@ -1,7 +1,7 @@
 import nextcord
 from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
-from Cogs.settingsCommands import SettingsCommands
+from Cogs.settingsCommands import SettingsCommands, DatabaseManager
 
 
 class ManageChannelsCommands(commands.Cog):
@@ -28,7 +28,7 @@ class ManageChannelsCommands(commands.Cog):
         if not channel_check:
             return
 
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'guild_bot_channels')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'guild_bot_channels')
         if collection is None:
             return
 
@@ -73,7 +73,7 @@ class ManageChannelsCommands(commands.Cog):
                                                     ephemeral=True)
             return
 
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'guild_bot_channels')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'guild_bot_channels')
         if collection is None:
             return
 

@@ -4,7 +4,7 @@ from asyncio import sleep
 from nextcord.ext import commands
 from nextcord.abc import GuildChannel
 from nextcord import SlashOption
-from Cogs.settingsCommands import SettingsCommands
+from Cogs.settingsCommands import SettingsCommands, DatabaseManager
 
 
 class OnlineDropdown(nextcord.ui.Select):
@@ -301,7 +301,7 @@ class EverybodyCommands(commands.Cog):
         if not channel_check:
             return
 
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'new_members')
         if collection is None:
             return
 
@@ -334,7 +334,7 @@ class EverybodyCommands(commands.Cog):
         if not channel_check:
             return
 
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'members')
         if collection is None:
             return
 
@@ -458,7 +458,7 @@ class EverybodyCommands(commands.Cog):
         if not channel_check:
             return
 
-        collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'new_members')
         if collection is None:
             return
 
