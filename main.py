@@ -1,19 +1,16 @@
 import nextcord  # main packages
 from nextcord.ext import commands, application_checks
-from os import listdir, getenv  # utility packages
+import os  # utility packages
 from Cogs.settingsCommands import SettingsCommands, DatabaseManager
 
 # Making sure the bot has all the permissions
-
 intents = nextcord.Intents().all()
 
 # Initialize bot
-
 client = commands.Bot(command_prefix='*', intents=intents, help_command=None)
 
 # Loading cogs
-
-for filename in listdir("./Cogs"):  # iterate over files in 'Cogs' dictionary
+for filename in os.listdir("./Cogs"):  # iterate over files in 'Cogs' dictionary
     print(filename)
     if filename.endswith(".py"):
         client.load_extension(f"Cogs.{filename[:-3]}")  # load cogs into bot
@@ -69,6 +66,7 @@ async def on_member_join(member: nextcord.Member):
     collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'new_members')
     if collection is None:
         return
+
     check = collection.find_one({"_id": member.id})
     if not check:
         query = {
@@ -168,23 +166,23 @@ async def on_command_error(ctx, error):
             None
     """
     if isinstance(error, commands.CommandOnCooldown):  # called when you try to use command that is on cooldown.
-        await ctx.send("Command's on cooldown. Time remaining: {}s :(".format(round(error.retry_after)), delete_after=5)
+        await ctx.send(f"Command's on cooldown. Time remaining: {round(error.retry_after)}s")
         return
+
+    if isinstance(error, commands.ChannelNotFound) or isinstance(error, commands.ChannelNotReadable):
+        await ctx.send("Could not find channel", delete_after=5)
+
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("Couldn't find that command, check for any spelling errors", delete_after=5)
 
     if isinstance(error, commands.MissingPermissions):  # called when you don't have permission to use that command.
         missing_perms = await SettingsCommands.format_missing_permissions(error)
         await ctx.send(f"You don't have {missing_perms} permissions to use this command, check *help for more info",
                        delete_after=5)
 
-    if isinstance(error, commands.ChannelNotFound):
-        await ctx.send("Could not find channel", delete_after=5)
-
-    if isinstance(error, commands.CommandNotFound):
-        await ctx.send("Couldn't find that command, check for any spelling errors", delete_after=5)
-
     if isinstance(error, commands.BotMissingPermissions):
         missing_perms = await SettingsCommands.format_missing_permissions(error)
         await ctx.send(f'Bot is missing permissions. '
                        f'Make sure that bot has permission to **{missing_perms}**', delete_after=5)
 
-client.run(getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(os.getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
