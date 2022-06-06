@@ -1,7 +1,7 @@
 import nextcord  # main packages
 from nextcord.ext import commands, application_checks
 from os import listdir, getenv  # utility packages
-from Cogs.settingsCommands import SettingsCommands
+from Cogs.settingsCommands import SettingsCommands, DatabaseManager
 
 # Making sure the bot has all the permissions
 
@@ -45,7 +45,7 @@ async def on_message(message: nextcord.Message):
         Returns:
             None
     """
-    collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+    collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'new_members')
     if collection is None:
         return
     collection.update_one(
@@ -66,7 +66,7 @@ async def on_member_join(member: nextcord.Member):
         Returns:
             None
     """
-    collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'new_members')
+    collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'new_members')
     if collection is None:
         return
     check = collection.find_one({"_id": member.id})
@@ -79,7 +79,7 @@ async def on_member_join(member: nextcord.Member):
 
 # @client.event
 # async def on_member_update(before, after):
-#     collection = await SettingsCommands.db_connection('Discord_Bot_Database', 'members')
+#     collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'members')
 #     if after.activities and not before.activities:
 #         for after_activity in after.activities:
 #             if after_activity.type == discord.ActivityType.playing:
