@@ -268,10 +268,6 @@ class LolCommands(commands.Cog):
                 f' which is around **{request["ranked"]["closestRank"]}**')
             return
 
-    @nextcord.slash_command(name='lol_daily_aram_report', guild_ids=[218510314835148802])
-    async def daily_aram_report(self, ctx, interaction: nextcord.Interaction, nickname: str):
-        pass
-
 
 def setup(client):  # adding cog to our main.py file
     client.add_cog(LolCommands(client))
