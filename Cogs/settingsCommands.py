@@ -351,7 +351,7 @@ class SettingsCommands(commands.Cog):
     async def get_json_response(url, params, ctx):
         print('Trying to get url...')
         request = requests.get(url, params=params)
-        print('Success! Got url, checking status...')
+        print(f'Success! Got url, checking status... {request}')
         if request.status_code == 404:
             await ctx.send(f'Couldn\'t find {params["name"]} MMR on EUNE')
             return None
