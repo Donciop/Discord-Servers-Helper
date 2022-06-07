@@ -350,7 +350,8 @@ class SettingsCommands(commands.Cog):
     @staticmethod
     async def get_json_response(url, params, ctx):
         print('Trying to get url...')
-        request = requests.get(url, params=params)
+        headers = {'User-Agent': 'win10:https://discordkremowka.herokuapp.com/:v1.4'}
+        request = requests.get(url, params=params, headers=headers)
         print(f'Success! Got url, checking status... {request}')
         if request.status_code == 404:
             await ctx.send(f'Couldn\'t find {params["name"]} MMR on EUNE')
