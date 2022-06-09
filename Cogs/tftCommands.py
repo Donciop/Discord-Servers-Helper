@@ -264,7 +264,8 @@ class TftCommands(commands.Cog):
 
         # Getting data from .json files that are used to store information about Teamfight Tactics characters etc.
         all_stats = await SettingsCommands.load_json_dict("JsonData/allStats.json")
-        comps = await SettingsCommands.load_json_dict("JsonData/tft6.json")
+        comps = await SettingsCommands.load_json_dict("JsonData/TFT_SET_7/SET_7_TRAITS.json")
+        champs = await SettingsCommands.load_json_dict("JsonData/TFT_SET_7/SET_7_CHAMPIONS.json")
 
         await interaction.response.defer()
 
@@ -290,12 +291,17 @@ class TftCommands(commands.Cog):
 
                     # if trait is active, we collect that to our dictionary for further analysis
                     if trait['tier_current'] > 0:
-
                         comps[str(trait['name'])][0] += 1
 
                         # check if player was above 4th place for further performance analysis
                         if participant['placement'] <= 4:
                             comps[str(trait['name'])][1] += 1
+
+                for champion in participant['units']:
+                    champs[str(champion['character_id'])][0] += 1
+
+                    if participant['placement'] <= 4:
+                        champs[str(champion['character_id'])][1] += 1
 
                 # check from what type of queue the match we're analyzing right now and
                 # assign q_type variable based on queue type of the match
@@ -322,6 +328,11 @@ class TftCommands(commands.Cog):
         # sort dictionary based on amount of times a trait has been played
         comps_sorted = sorted(
             comps.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+        champs_sorted = sorted(
+            champs.items(),
             key=lambda x: x[1],
             reverse=True
         )
@@ -381,6 +392,12 @@ class TftCommands(commands.Cog):
                     """,  # data contains his average placement, winrate etc.
                     inline=False
                 )
+            else:
+                embed.add_field(
+                    name=f"{config.TFT_DISCORD_EMOJI} {search_queue_type}",
+                    value="No games in this gamemode during this SET",
+                    inline=False
+                )
 
         # adding field with favourite traits that player has played the most in his games
         embed.add_field(
@@ -394,8 +411,25 @@ class TftCommands(commands.Cog):
             f'**{comps_sorted[3][0][5:]}** in {comps_sorted[3][1][0]} matches '
             f'with **{round((comps_sorted[3][1][1]/comps_sorted[3][1][0])*100, 2)}**% top 4 ratio\n'
             f'**{comps_sorted[4][0][5:]}** in {comps_sorted[4][1][0]} matches '
-            f'with **{round((comps_sorted[4][1][1]/comps_sorted[4][1][0])*100, 2)}**% top 4 ratio\n')
-        embed.set_footer(text=f'Statistics provided by {self.client.user.name}')
+            f'with **{round((comps_sorted[4][1][1]/comps_sorted[4][1][0])*100, 2)}**% top 4 ratio\n'
+        )
+
+        # adding field with player's favourite champions which he played the most
+        embed.add_field(
+            name=":heart: FAVOURITE CHAMPIONS",
+            value=f'**{champs_sorted[0][0][5:]}** in {champs_sorted[0][1][0]} matches '
+            f'with **{round((champs_sorted[0][1][1] / champs_sorted[0][1][0]) * 100, 2)}%** top 4 ratio\n'
+            f'**{champs_sorted[1][0][5:]}** in {champs_sorted[1][1][0]} matches '
+            f'with **{round((champs_sorted[1][1][1] / champs_sorted[1][1][0]) * 100, 2)}%** top 4 ratio\n'
+            f'**{champs_sorted[2][0][5:]}** in {champs_sorted[2][1][0]} matches '
+            f'with **{round((champs_sorted[2][1][1] / champs_sorted[2][1][0]) * 100, 2)}%** top 4 ratio\n'
+            f'**{champs_sorted[3][0][5:]}** in {champs_sorted[3][1][0]} matches '
+            f'with **{round((champs_sorted[3][1][1] / champs_sorted[3][1][0]) * 100, 2)}%** top 4 ratio\n'
+            f'**{champs_sorted[4][0][5:]}** in {champs_sorted[4][1][0]} matches '
+            f'with **{round((champs_sorted[4][1][1] / champs_sorted[4][1][0]) * 100, 2)}%** top 4 ratio\n'
+        )
+
+        embed.set_footer(text=f'Statistics provided by {self.client.user.name}™')
         await interaction.followup.send(embed=embed, file=file)
 
 

@@ -120,7 +120,6 @@ class TftUtilityFunctions(commands.Cog):
 
         summoner_stats = watcher.league.by_summoner('eun1', summoner['id'])
         if not summoner_stats:
-            await interaction.response.send_message(f'Player {summoner} is unranked', ephemeral=True)
             return None
 
         queue_found = False
@@ -129,8 +128,7 @@ class TftUtilityFunctions(commands.Cog):
                 return league_type
 
         if not queue_found:
-            await interaction.response.send_message(f'Player {summoner} is unranked', ephemeral=True)
-            return
+            return None
 
 
 class RiotUtilityFunctions(commands.Cog):
