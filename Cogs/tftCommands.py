@@ -86,7 +86,8 @@ class TftCommands(commands.Cog):
                 None
         """
         channel_check = await SettingsCommands.channel_check(interaction)
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'tft_players')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set7_tft_players',
+                                                             interaction=interaction)
         if collection is None or not channel_check:
             return
 
@@ -100,8 +101,17 @@ class TftCommands(commands.Cog):
                                                     ephemeral=True)
             return
 
+        # checking user's rank
+        if not summoner_stats:
+            await interaction.response.send_message(f'Player **{nickname}** is unranked',
+                                                    ephemeral=True)
+            return
+
+        # calculating local ranking and corresponding tier emoji to display on leaderboard
         tier_emoji = await RiotUtilityFunctions.get_rank_emoji(summoner_stats)
         ranking = await RiotUtilityFunctions.get_local_rank(summoner_stats)
+
+        # preparing query that will be inserted to the database
         query = {
             '_id': summoner_stats['summonerId'],
             'nickname': nickname,
@@ -131,17 +141,18 @@ class TftCommands(commands.Cog):
                 None
         """
         channel_check = await SettingsCommands.channel_check(interaction)
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'tft_players')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set7_tft_players')
 
         if not channel_check or collection is None:
             return
 
+        # searching database to check if player's already exists
         tft_player = collection.find_one({'nickname': nickname})
         if tft_player:
             collection.delete_one({'nickname': nickname})  # removing player from database
             await interaction.response.send_message(f'You have deleted **{nickname}** from database', ephemeral=True)
         else:
-            await interaction.response.send_message(f'Can\'t find **{nickname}** in database', ephemeral=True)
+            await interaction.response.send_message(f'Can\'t find **{nickname}** in the database', ephemeral=True)
 
     @nextcord.slash_command(name='tft_ranking', guild_ids=[218510314835148802])
     async def tft_ranking(self, interaction: nextcord.Interaction):
@@ -216,7 +227,7 @@ class TftCommands(commands.Cog):
                 )
         await interaction.followup.send(embed=embed, file=file)
 
-    @nextcord.slash_command(name='tft_stats', guild_ids=[218510314835148802])
+    @nextcord.slash_command(name='tft_stats', guild_ids=[218510314835148802, 913168099241504890])
     async def tft_stats(self, interaction: nextcord.Interaction,
                         nickname: str = nextcord.SlashOption(required=True),
                         number_of_matches: int = nextcord.SlashOption(required=True),
@@ -251,6 +262,9 @@ class TftCommands(commands.Cog):
             return
 
         summoner = await TftUtilityFunctions.get_summoner(interaction, nickname)
+        if not summoner:
+            return
+
         summoner_stats = await TftUtilityFunctions.get_tft_ranked_stats(interaction, summoner)
 
         # access player's match history in form of list of match ids
@@ -264,6 +278,7 @@ class TftCommands(commands.Cog):
 
         # Getting data from .json files that are used to store information about Teamfight Tactics characters etc.
         all_stats = await SettingsCommands.load_json_dict("JsonData/allStats.json")
+        queue_ids = await SettingsCommands.load_json_dict("JsonData/queue_numbers_dict.json")
         comps = await SettingsCommands.load_json_dict("JsonData/TFT_SET_7/SET_7_TRAITS.json")
         champs = await SettingsCommands.load_json_dict("JsonData/TFT_SET_7/SET_7_CHAMPIONS.json")
 
@@ -275,8 +290,12 @@ class TftCommands(commands.Cog):
             # getting match details for further analysis
             match_detail = watcher.match.by_id("europe", match)
 
+            if search_queue_type != 'all':
+                if match_detail['info']['queue_id'] != queue_ids[search_queue_type]:
+                    continue
+
             # check if we're getting matches only from current "set" in Teamfight Tactics
-            if match_detail['info']['tft_set_number'] != 7:
+            if match_detail['info']['tft_set_number'] != config.CURRENT_TFT_SET:
                 break
 
             # iterate over every participant in match to find our player
@@ -309,21 +328,32 @@ class TftCommands(commands.Cog):
                     q_type = 'Normal'
                 elif match_detail['info']['queue_id'] == 1100:
                     q_type = 'Ranked'
-                elif match_detail['info']['queue_id'] == 1150:
+                elif match_detail['info']['queue_id'] == 1160:
                     q_type = 'Double Up'
                 else:
                     q_type = 'Hyper Roll'
 
-                # boolean that tells us that player has played that queue type at least once
+                # saving that user has played this type of queue
                 all_stats[str(q_type)]['hasPlayed'] = True
-                all_stats[str(q_type)]['played'] += 1  # increment number of matches played
 
-                # information about placement in that match for further analysis
-                all_stats[str(q_type)]['placements'] += participant['placement']
+                # incrementing number of games that player has played in this game mode
+                all_stats[str(q_type)]['played'] += 1
+
+                # saving information about placements
+                if match_detail['info']['queue_id'] == 1160:
+                    all_stats[str(q_type)]['placements'] += int(participant['placement'] / 2)
+                else:
+                    all_stats[str(q_type)]['placements'] += participant['placement']
+
+                # checking if player managed to be in top4 players
                 if participant['placement'] <= 4:
                     all_stats[str(q_type)]['top4'] += 1
-                    if participant['placement'] == 1:
-                        all_stats[str(q_type)]['winrate'] += 1
+                    if match_detail['info']['queue_id'] == 1160:
+                        if participant['placement'] == 1 or participant['placement'] == 2:
+                            all_stats[str(q_type)]['winrate'] += 1
+                    else:
+                        if participant['placement'] == 1:
+                            all_stats[str(q_type)]['winrate'] += 1
 
         # sort dictionary based on amount of times a trait has been played
         comps_sorted = sorted(
@@ -353,8 +383,8 @@ class TftCommands(commands.Cog):
             tier_emoji = await RiotUtilityFunctions.get_rank_emoji(summoner_stats)
             embed.add_field(
                 name=":trophy: RANK",
-                value=f"{tier_emoji} {summoner_stats[0]['tier']} {summoner_stats[0]['rank']} | "
-                      f"{summoner_stats[0]['leaguePoints']} LP",
+                value=f"{tier_emoji} {summoner_stats['tier']} {summoner_stats['rank']} | "
+                      f"{summoner_stats['leaguePoints']} LP",
                 inline=False
             )
         else:
@@ -371,8 +401,8 @@ class TftCommands(commands.Cog):
                         name=f"{config.TFT_DISCORD_EMOJI} {key}",
                         value=f"""
                         **{all_stats[key]['played']}** games played with avg. **{average_place}** place
-                        **{round((all_stats[key]['top4']/all_stats[key]['played'])*100, 2)}%** top 4 rate
-                        **{round((all_stats[key]['winrate']/all_stats[key]['played'])*100, 2)}%** winrate
+                        **{round((all_stats[key]['top4']/all_stats[key]['played'])*100)}%** top 4 rate
+                        **{round((all_stats[key]['winrate']/all_stats[key]['played'])*100)}%** winrate
                         """,  # data contains his average placement, winrate etc.
                         inline=False
                     )
@@ -385,48 +415,52 @@ class TftCommands(commands.Cog):
                 # adding field contains information about his performance in that queue type
                 embed.add_field(
                     name=f"{config.TFT_DISCORD_EMOJI} {search_queue_type}",
-                    value=f"""
-                    **{all_stats[search_queue_type]['played']}** games played with avg. **{average_place}** place
-                    **{round((all_stats[search_queue_type]['top4'] / all_stats[search_queue_type]['played']) * 100, 2)}%** top 4 rate
-                    **{round((all_stats[search_queue_type]['winrate'] / all_stats[search_queue_type]['played']) * 100, 2)}%** winrate
-                    """,  # data contains his average placement, winrate etc.
+                    value=f'**{all_stats[search_queue_type]["played"]}** games played with avg.'
+                          f' **{average_place}** place'
+                    f'**{round((all_stats[search_queue_type]["top4"]/all_stats[search_queue_type]["played"]) * 100)}'
+                          f'%** top 4 rate'
+                    f'**{round((all_stats[search_queue_type]["winrate"]/all_stats[search_queue_type]["played"]) * 100)}'
+                          f'%** winrate',
+                    # data contains his average placement, winrate etc.
                     inline=False
                 )
             else:
                 embed.add_field(
                     name=f"{config.TFT_DISCORD_EMOJI} {search_queue_type}",
-                    value="No games in this gamemode during this SET",
+                    value="No games in this game mode during this SET",
                     inline=False
                 )
+                embed.set_footer(text=f'Statistics provided by {self.client.user.name}™')
+                await interaction.followup.send(embed=embed, file=file)
 
         # adding field with favourite traits that player has played the most in his games
         embed.add_field(
             name=":heart: FAVOURITE TRAITS",
-            value=f'**{comps_sorted[0][0][5:]}** in {comps_sorted[0][1][0]} matches '
-            f'with **{round((comps_sorted[0][1][1]/comps_sorted[0][1][0])*100, 2)}%** top 4 ratio\n'
-            f'**{comps_sorted[1][0][5:]}** in {comps_sorted[1][1][0]} matches '
-            f'with **{round((comps_sorted[1][1][1]/comps_sorted[1][1][0])*100, 2)}%** top 4 ratio\n'
-            f'**{comps_sorted[2][0][5:]}** in {comps_sorted[2][1][0]} matches '
-            f'with **{round((comps_sorted[2][1][1]/comps_sorted[2][1][0])*100, 2)}**% top 4 ratio\n'
-            f'**{comps_sorted[3][0][5:]}** in {comps_sorted[3][1][0]} matches '
-            f'with **{round((comps_sorted[3][1][1]/comps_sorted[3][1][0])*100, 2)}**% top 4 ratio\n'
-            f'**{comps_sorted[4][0][5:]}** in {comps_sorted[4][1][0]} matches '
-            f'with **{round((comps_sorted[4][1][1]/comps_sorted[4][1][0])*100, 2)}**% top 4 ratio\n'
+            value=f'**{comps_sorted[0][1][2]} {comps_sorted[0][0][5:]}** in {comps_sorted[0][1][0]} matches '
+            f'with **{round((comps_sorted[0][1][1]/comps_sorted[0][1][0])*100)}%** top 4 ratio\n'
+            f'**{comps_sorted[1][1][2]} {comps_sorted[1][0][5:]}** in {comps_sorted[1][1][0]} matches '
+            f'with **{round((comps_sorted[1][1][1]/comps_sorted[1][1][0])*100)}%** top 4 ratio\n'
+            f'**{comps_sorted[2][1][2]} {comps_sorted[2][0][5:]}** in {comps_sorted[2][1][0]} matches '
+            f'with **{round((comps_sorted[2][1][1]/comps_sorted[2][1][0])*100)}**% top 4 ratio\n'
+            f'**{comps_sorted[3][1][2]} {comps_sorted[3][0][5:]}** in {comps_sorted[3][1][0]} matches '
+            f'with **{round((comps_sorted[3][1][1]/comps_sorted[3][1][0])*100)}**% top 4 ratio\n'
+            f'**{comps_sorted[4][1][2]} {comps_sorted[4][0][5:]}** in {comps_sorted[4][1][0]} matches '
+            f'with **{round((comps_sorted[4][1][1]/comps_sorted[4][1][0])*100)}**% top 4 ratio\n'
         )
 
         # adding field with player's favourite champions which he played the most
         embed.add_field(
             name=":heart: FAVOURITE CHAMPIONS",
             value=f'**{champs_sorted[0][0][5:]}** in {champs_sorted[0][1][0]} matches '
-            f'with **{round((champs_sorted[0][1][1] / champs_sorted[0][1][0]) * 100, 2)}%** top 4 ratio\n'
+            f'with **{round((champs_sorted[0][1][1] / champs_sorted[0][1][0]) * 100)}%** top 4 ratio\n'
             f'**{champs_sorted[1][0][5:]}** in {champs_sorted[1][1][0]} matches '
-            f'with **{round((champs_sorted[1][1][1] / champs_sorted[1][1][0]) * 100, 2)}%** top 4 ratio\n'
+            f'with **{round((champs_sorted[1][1][1] / champs_sorted[1][1][0]) * 100)}%** top 4 ratio\n'
             f'**{champs_sorted[2][0][5:]}** in {champs_sorted[2][1][0]} matches '
-            f'with **{round((champs_sorted[2][1][1] / champs_sorted[2][1][0]) * 100, 2)}%** top 4 ratio\n'
+            f'with **{round((champs_sorted[2][1][1] / champs_sorted[2][1][0]) * 100)}%** top 4 ratio\n'
             f'**{champs_sorted[3][0][5:]}** in {champs_sorted[3][1][0]} matches '
-            f'with **{round((champs_sorted[3][1][1] / champs_sorted[3][1][0]) * 100, 2)}%** top 4 ratio\n'
+            f'with **{round((champs_sorted[3][1][1] / champs_sorted[3][1][0]) * 100)}%** top 4 ratio\n'
             f'**{champs_sorted[4][0][5:]}** in {champs_sorted[4][1][0]} matches '
-            f'with **{round((champs_sorted[4][1][1] / champs_sorted[4][1][0]) * 100, 2)}%** top 4 ratio\n'
+            f'with **{round((champs_sorted[4][1][1] / champs_sorted[4][1][0]) * 100)}%** top 4 ratio\n'
         )
 
         embed.set_footer(text=f'Statistics provided by {self.client.user.name}™')
