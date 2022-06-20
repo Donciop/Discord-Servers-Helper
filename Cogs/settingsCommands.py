@@ -135,7 +135,7 @@ class RiotUtilityFunctions(commands.Cog):
 
     @staticmethod
     async def get_rank_emoji(summoner_rank: dict):
-        rank_dict = await SettingsCommands.load_json_dict("JsonData/rankDict.json")
+        rank_dict = await SettingsCommands.load_json_dict("JsonData//rankDict.json")
         for tier in rank_dict:  # iterate over every tier until we find player's tier
             if summoner_rank['tier'] == tier:
                 tier_emoji = rank_dict[tier]
@@ -144,7 +144,7 @@ class RiotUtilityFunctions(commands.Cog):
     @staticmethod
     async def get_local_rank(summoner_rank: dict):
         local_rank = 0
-        rank_list = ['I', 'II', 'III', 'IV']
+        rank_list = ['IV', 'III', 'II', 'I']
         rank_dict = await SettingsCommands.load_json_dict("JsonData/rankDict.json")
 
         for tier in rank_dict:

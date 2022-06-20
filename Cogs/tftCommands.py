@@ -63,13 +63,15 @@ class TftCommands(commands.Cog):
         win_ratio = round((summoner_stats['wins']/(summoner_stats['wins']+summoner_stats['losses']))*100)
         amount_of_matches = summoner_stats['wins'] + summoner_stats['losses']
 
-        # adding fields to embed message that contains rank, win rate,
+        # adding field to embed message that contains rank, win rate,
         # amounts of matches played and league points currently owned
         embed.add_field(
             name="RANKED",
             value=f"{tier_emoji} {summoner_stats['tier']} {summoner_stats['rank']} | "
                   f"{summoner_stats['leaguePoints']} LP\n"
                   f"**{win_ratio}%** top 1 ratio ({amount_of_matches}) Matches")
+
+        # sending response
         await interaction.response.send_message(file=file, embed=embed)
 
     @nextcord.slash_command(name='tft_add_player', guild_ids=[218510314835148802])
@@ -93,6 +95,8 @@ class TftCommands(commands.Cog):
 
         summoner = await TftUtilityFunctions.get_summoner(interaction, nickname)
         summoner_stats = await TftUtilityFunctions.get_tft_ranked_stats(interaction, summoner)
+        if not summoner or not summoner_stats:
+            return
 
         # searching database to check if player's already exists
         tft_player = collection.find_one({'nickname': nickname})
@@ -111,6 +115,7 @@ class TftCommands(commands.Cog):
         tier_emoji = await RiotUtilityFunctions.get_rank_emoji(summoner_stats)
         ranking = await RiotUtilityFunctions.get_local_rank(summoner_stats)
 
+        await interaction.response.defer()
         # preparing query that will be inserted to the database
         query = {
             '_id': summoner_stats['summonerId'],
@@ -124,7 +129,7 @@ class TftCommands(commands.Cog):
             'ranking': ranking
         }
         collection.insert_one(query)
-        await interaction.response.send_message(f'Added **{nickname}** to the database', ephemeral=True)
+        await interaction.followup.send(f'Added **{nickname}** to the database', ephemeral=True)
 
     @nextcord.slash_command(name='tft_remove_player', guild_ids=[218510314835148802])
     @application_checks.has_permissions(manage_channels=True)
@@ -140,6 +145,7 @@ class TftCommands(commands.Cog):
             Returns:
                 None
         """
+        await interaction.response.defer()
         channel_check = await SettingsCommands.channel_check(interaction)
         collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set7_tft_players')
 
@@ -165,8 +171,11 @@ class TftCommands(commands.Cog):
             Returns:
                 None
         """
+        # defer a command due to long computing time and timeouts from slash commands
+        await interaction.response.defer()
+
         channel_check = await SettingsCommands.channel_check(interaction)
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'tft_players')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set7_tft_players')
 
         if not channel_check or collection is None:
             return
@@ -179,9 +188,6 @@ class TftCommands(commands.Cog):
         file = nextcord.File(config.TFT_THUMBNAIL_FILEPATH, filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
 
-        # defer a command due to long computing time and timeouts from slash commands
-        await interaction.response.defer()
-
         for old_tft_player in collection.find():
 
             summoner = await TftUtilityFunctions.get_summoner(interaction, old_tft_player['nickname'])
@@ -190,14 +196,19 @@ class TftCommands(commands.Cog):
             tier_emoji = await RiotUtilityFunctions.get_rank_emoji(summoner_stats)
             ranking = await RiotUtilityFunctions.get_local_rank(summoner_stats)
             collection.update_one({"nickname": old_tft_player['nickname']},
-                                  {"$set": {"matchesPlayed":
-                                            (summoner_stats['wins']+summoner_stats['losses']),
+                                  {"$set": {"matchesPlayed": (summoner_stats['wins']+summoner_stats['losses']),
                                             "rank": summoner_stats['rank'],
                                             "tier": summoner_stats['tier'],
                                             "leaguePoints": summoner_stats['leaguePoints'],
-                                            "tierEmoji": tier_emoji, "wins": summoner_stats['wins'],
+                                            "tierEmoji": tier_emoji,
+                                            "wins": summoner_stats['wins'],
                                             "ranking": ranking
                                             }})
+            progress_emoji = ''
+            if old_tft_player['ranking'] > ranking:
+                progress_emoji = '<:green_arrow:988447460630335549>'
+            elif old_tft_player['ranking'] < ranking:
+                progress_emoji = '🔻'
 
         # iterate over every player in leaderboard to give him right place
         for iterator, tft_player in enumerate(collection.find().sort("ranking", pymongo.DESCENDING)):
@@ -210,18 +221,19 @@ class TftCommands(commands.Cog):
             else:
                 rank_emoji = None
             if rank_emoji is not None:
+
                 embed.add_field(  # adding fields to embed message with player's statistics
                     name=f"{rank_emoji} {tft_player['tierEmoji']}{tft_player['nickname']} | "
-                         f"{tft_player['tier']} {tft_player['rank']} ({tft_player['leaguePoints']} LP)",
-                    value=f"**{round((tft_player['wins']/tft_player['matchesPlayed'])*100)}**% winrate"
+                         f"{tft_player['tier']} {tft_player['rank']} ({tft_player['leaguePoints']} LP){progress_emoji}",
+                    value=f"**{round((tft_player['wins']/tft_player['matchesPlayed'])*100)}**% top 4"
                           f" with **{tft_player['matchesPlayed']}** matches played",
                     inline=False
                 )
             else:
                 embed.add_field(
                     name=f"{tft_player['tierEmoji']}{tft_player['nickname']} | "
-                         f"{tft_player['tier']} {tft_player['rank']} ({tft_player['leaguePoints']} LP)",
-                    value=f"**{round((tft_player['wins'] / tft_player['matchesPlayed']) * 100)}**% winrate"
+                         f"{tft_player['tier']} {tft_player['rank']} ({tft_player['leaguePoints']} LP){progress_emoji}",
+                    value=f"**{round((tft_player['wins'] / tft_player['matchesPlayed']) * 100)}**% top 4"
                           f" with **{tft_player['matchesPlayed']}** matches played",
                     inline=False
                 )
@@ -251,6 +263,7 @@ class TftCommands(commands.Cog):
             Returns:
                 None
         """
+        await interaction.response.defer()
         watcher = TftWatcher(os.getenv('APIKEYTFT'))
         channel_check = await SettingsCommands.channel_check(interaction)
         if not channel_check:
@@ -281,8 +294,6 @@ class TftCommands(commands.Cog):
         queue_ids = await SettingsCommands.load_json_dict("JsonData/queue_numbers_dict.json")
         comps = await SettingsCommands.load_json_dict("JsonData/TFT_SET_7/SET_7_TRAITS.json")
         champs = await SettingsCommands.load_json_dict("JsonData/TFT_SET_7/SET_7_CHAMPIONS.json")
-
-        await interaction.response.defer()
 
         # iterate over every match in match list
         for match in match_list:
