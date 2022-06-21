@@ -205,9 +205,9 @@ class TftCommands(commands.Cog):
                                             "ranking": ranking
                                             }})
             progress_emoji = ''
-            if old_tft_player['ranking'] > ranking:
+            if old_tft_player['ranking'] < ranking:
                 progress_emoji = '<:green_arrow:988447460630335549>'
-            elif old_tft_player['ranking'] < ranking:
+            elif old_tft_player['ranking'] > ranking:
                 progress_emoji = '🔻'
 
         # iterate over every player in leaderboard to give him right place
