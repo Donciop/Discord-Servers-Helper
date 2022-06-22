@@ -1,7 +1,7 @@
 import nextcord  # main packages
 import pymongo
 from nextcord.ext import commands, application_checks
-from Cogs.settingsCommands import SettingsCommands, TftUtilityFunctions, RiotUtilityFunctions, DatabaseManager
+from COGS.settingsCommands import SettingsCommands, TftUtilityFunctions, RiotUtilityFunctions, DatabaseManager
 from riotwatcher import TftWatcher
 import os
 import config
@@ -183,7 +183,7 @@ class TftCommands(commands.Cog):
         embed = nextcord.Embed(
           color=0x11f80d,
           title="🏆 Teamfight Tactics Leaderboard 🏆",
-          description="For advanced info use *tftStats or *tftRank"
+          description="For advanced info use **/tftStats** or **/tftRank**"
         )
         file = nextcord.File(config.TFT_THUMBNAIL_FILEPATH, filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
@@ -195,6 +195,11 @@ class TftCommands(commands.Cog):
 
             tier_emoji = await RiotUtilityFunctions.get_rank_emoji(summoner_stats)
             ranking = await RiotUtilityFunctions.get_local_rank(summoner_stats)
+            progress_emoji = ''
+            if old_tft_player['ranking'] < ranking:
+                progress_emoji = '<:green_arrow:988447460630335549>'
+            elif old_tft_player['ranking'] > ranking:
+                progress_emoji = '🔻'
             collection.update_one({"nickname": old_tft_player['nickname']},
                                   {"$set": {"matchesPlayed": (summoner_stats['wins']+summoner_stats['losses']),
                                             "rank": summoner_stats['rank'],
@@ -202,13 +207,9 @@ class TftCommands(commands.Cog):
                                             "leaguePoints": summoner_stats['leaguePoints'],
                                             "tierEmoji": tier_emoji,
                                             "wins": summoner_stats['wins'],
-                                            "ranking": ranking
+                                            "ranking": ranking,
+                                            "progress_emoji": progress_emoji
                                             }})
-            progress_emoji = ''
-            if old_tft_player['ranking'] < ranking:
-                progress_emoji = '<:green_arrow:988447460630335549>'
-            elif old_tft_player['ranking'] > ranking:
-                progress_emoji = '🔻'
 
         # iterate over every player in leaderboard to give him right place
         for iterator, tft_player in enumerate(collection.find().sort("ranking", pymongo.DESCENDING)):
@@ -224,7 +225,7 @@ class TftCommands(commands.Cog):
 
                 embed.add_field(  # adding fields to embed message with player's statistics
                     name=f"{rank_emoji} {tft_player['tierEmoji']}{tft_player['nickname']} | "
-                         f"{tft_player['tier']} {tft_player['rank']} ({tft_player['leaguePoints']} LP){progress_emoji}",
+                         f"{tft_player['tier']} {tft_player['rank']} ({tft_player['leaguePoints']} LP){tft_player['progress_emoji']}",
                     value=f"**{round((tft_player['wins']/tft_player['matchesPlayed'])*100)}**% top 4"
                           f" with **{tft_player['matchesPlayed']}** matches played",
                     inline=False
@@ -232,7 +233,7 @@ class TftCommands(commands.Cog):
             else:
                 embed.add_field(
                     name=f"{tft_player['tierEmoji']}{tft_player['nickname']} | "
-                         f"{tft_player['tier']} {tft_player['rank']} ({tft_player['leaguePoints']} LP){progress_emoji}",
+                         f"{tft_player['tier']} {tft_player['rank']} ({tft_player['leaguePoints']} LP){tft_player['progress_emoji']}",
                     value=f"**{round((tft_player['wins'] / tft_player['matchesPlayed']) * 100)}**% top 4"
                           f" with **{tft_player['matchesPlayed']}** matches played",
                     inline=False
@@ -290,10 +291,10 @@ class TftCommands(commands.Cog):
             return
 
         # Getting data from .json files that are used to store information about Teamfight Tactics characters etc.
-        all_stats = await SettingsCommands.load_json_dict("JsonData/allStats.json")
-        queue_ids = await SettingsCommands.load_json_dict("JsonData/queue_numbers_dict.json")
-        comps = await SettingsCommands.load_json_dict("JsonData/TFT_SET_7/SET_7_TRAITS.json")
-        champs = await SettingsCommands.load_json_dict("JsonData/TFT_SET_7/SET_7_CHAMPIONS.json")
+        all_stats = await SettingsCommands.load_json_dict("JSON_DATA/allStats.json")
+        queue_ids = await SettingsCommands.load_json_dict("JSON_DATA/queue_numbers_dict.json")
+        comps = await SettingsCommands.load_json_dict("JSON_DATA/TFT_SET_7/SET_7_TRAITS.json")
+        champs = await SettingsCommands.load_json_dict("JSON_DATA/TFT_SET_7/SET_7_CHAMPIONS.json")
 
         # iterate over every match in match list
         for match in match_list:

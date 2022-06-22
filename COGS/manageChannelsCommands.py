@@ -1,7 +1,7 @@
 import nextcord
 from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
-from Cogs.settingsCommands import SettingsCommands, DatabaseManager
+from COGS.settingsCommands import SettingsCommands, DatabaseManager
 
 
 class ManageChannelsCommands(commands.Cog):

@@ -4,7 +4,7 @@ from asyncio import sleep
 from nextcord.ext import commands
 from nextcord.abc import GuildChannel
 from nextcord import SlashOption
-from Cogs.settingsCommands import SettingsCommands, DatabaseManager
+from COGS.settingsCommands import SettingsCommands, DatabaseManager
 
 
 class OnlineDropdown(nextcord.ui.Select):
@@ -244,7 +244,7 @@ class EverybodyCommands(commands.Cog):
                   inline=False
                 )
 
-        file = nextcord.File("Media/jail.png", filename="image.png")
+        file = nextcord.File("MEDIA/jail.png", filename="image.png")
         embed.set_thumbnail(url="attachment://image.png")
 
         await interaction.response.send_message(embed=embed, file=file)
@@ -405,7 +405,7 @@ class EverybodyCommands(commands.Cog):
         leaderboard_sorted = sorted(leaderboard_not_sorted.items(), key=lambda x: x[1], reverse=True)
         iterator = 1
         file = nextcord.File(  # creating file to send image along the embed message
-            "Media/trophy.png",  # file path to image
+            "MEDIA/trophy.png",  # file path to image
             filename="image.png"  # name of the file
         )
         embed = nextcord.Embed(
@@ -463,7 +463,7 @@ class EverybodyCommands(commands.Cog):
             return
 
         file = nextcord.File(  # creating file to send image along the embed message
-            "Media/trophy.png",  # file path to image
+            "MEDIA/trophy.png",  # file path to image
             filename="image.png"  # name of the file
         )
 

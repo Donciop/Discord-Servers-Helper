@@ -1,6 +1,6 @@
 import nextcord
 from nextcord.ext import commands, application_checks
-from Cogs.settingsCommands import SettingsCommands
+from COGS.settingsCommands import SettingsCommands
 
 
 class ErrorHandling(commands.Cog):

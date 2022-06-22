@@ -1,7 +1,7 @@
 import nextcord
 from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
-from Cogs.settingsCommands import SettingsCommands, FilesManager
+from COGS.settingsCommands import SettingsCommands, FilesManager
 import random
 
 
@@ -57,8 +57,8 @@ class AdministratorCommands(commands.Cog):
     async def change_nicknames(self, interaction: nextcord.Interaction):
         await interaction.response.defer()
 
-        mobs_dict = await SettingsCommands.load_json_dict('JsonData/mobs_dict.json')
-        npc_dict = await SettingsCommands.load_json_dict('JsonData/npc_dict.json')
+        mobs_dict = await SettingsCommands.load_json_dict('JSON_DATA/mobs_dict.json')
+        npc_dict = await SettingsCommands.load_json_dict('JSON_DATA/npc_dict.json')
 
         for member in interaction.guild.members:
             if member.display_name not in mobs_dict and member.display_name not in npc_dict and not member.bot:

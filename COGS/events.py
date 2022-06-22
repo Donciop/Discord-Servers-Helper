@@ -1,5 +1,5 @@
 from nextcord.ext import commands
-from Cogs.settingsCommands import DatabaseManager
+from COGS.settingsCommands import DatabaseManager
 import nextcord
 
 

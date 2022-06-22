@@ -1,6 +1,6 @@
 import nextcord
 from nextcord.ext import commands, application_checks  # main packages
-from Cogs.settingsCommands import SettingsCommands
+from COGS.settingsCommands import SettingsCommands
 
 
 class BanMembersCommands(commands.Cog):

@@ -2,7 +2,7 @@ import nextcord  # main packages
 from nextcord.ext import commands
 from riotwatcher import LolWatcher  # RIOT API wrapper
 import os
-from Cogs.settingsCommands import SettingsCommands, LolUtilityFunctions, RiotUtilityFunctions, DatabaseManager
+from COGS.settingsCommands import SettingsCommands, LolUtilityFunctions, RiotUtilityFunctions, DatabaseManager
 import config
 
 
