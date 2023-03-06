@@ -69,7 +69,7 @@ class TftCommands(commands.Cog):
             name="RANKED",
             value=f"{tier_emoji} {summoner_stats['tier']} {summoner_stats['rank']} | "
                   f"{summoner_stats['leaguePoints']} LP\n"
-                  f"**{win_ratio}%** top 1 ratio ({amount_of_matches}) Matches")
+                  f"**{win_ratio}%** top 4 ratio ({amount_of_matches}) Matches")
 
         # sending response
         await interaction.response.send_message(file=file, embed=embed)
@@ -88,7 +88,7 @@ class TftCommands(commands.Cog):
                 None
         """
         channel_check = await SettingsCommands.channel_check(interaction)
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set7_tft_players',
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set8_tft_players',
                                                              interaction=interaction)
         if collection is None or not channel_check:
             return
@@ -147,7 +147,7 @@ class TftCommands(commands.Cog):
         """
         await interaction.response.defer()
         channel_check = await SettingsCommands.channel_check(interaction)
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set7_tft_players')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set8_tft_players')
 
         if not channel_check or collection is None:
             return
@@ -175,7 +175,7 @@ class TftCommands(commands.Cog):
         await interaction.response.defer()
 
         channel_check = await SettingsCommands.channel_check(interaction)
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set7_tft_players')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set8_tft_players')
 
         if not channel_check or collection is None:
             return
@@ -378,7 +378,8 @@ class TftCommands(commands.Cog):
             key=lambda x: x[1],
             reverse=True
         )
-
+        print(comps_sorted)
+        print(champs_sorted)
         title_nickname = nickname.lower()
         title_nickname = title_nickname.replace(" ", "")
 
@@ -429,9 +430,9 @@ class TftCommands(commands.Cog):
                     name=f"{config.TFT_DISCORD_EMOJI} {search_queue_type}",
                     value=f'**{all_stats[search_queue_type]["played"]}** games played with avg.'
                           f' **{average_place}** place'
-                    f'**{round((all_stats[search_queue_type]["top4"]/all_stats[search_queue_type]["played"]) * 100)}'
+                    f'**\n{round((all_stats[search_queue_type]["top4"]/all_stats[search_queue_type]["played"]) * 100)}'
                           f'%** top 4 rate'
-                    f'**{round((all_stats[search_queue_type]["winrate"]/all_stats[search_queue_type]["played"]) * 100)}'
+                    f'**\n{round((all_stats[search_queue_type]["winrate"]/all_stats[search_queue_type]["played"]) * 100)}'
                           f'%** winrate',
                     # data contains his average placement, winrate etc.
                     inline=False
@@ -448,15 +449,15 @@ class TftCommands(commands.Cog):
         # adding field with favourite traits that player has played the most in his games
         embed.add_field(
             name=":heart: FAVOURITE TRAITS",
-            value=f'**{comps_sorted[0][1][2]} {comps_sorted[0][0][5:]}** in {comps_sorted[0][1][0]} matches '
+            value=f'**{comps_sorted[0][0][5:]}** in {comps_sorted[0][1][0]} matches '
             f'with **{round((comps_sorted[0][1][1]/comps_sorted[0][1][0])*100)}%** top 4 ratio\n'
-            f'**{comps_sorted[1][1][2]} {comps_sorted[1][0][5:]}** in {comps_sorted[1][1][0]} matches '
+            f'**{comps_sorted[1][0][5:]}** in {comps_sorted[1][1][0]} matches '
             f'with **{round((comps_sorted[1][1][1]/comps_sorted[1][1][0])*100)}%** top 4 ratio\n'
-            f'**{comps_sorted[2][1][2]} {comps_sorted[2][0][5:]}** in {comps_sorted[2][1][0]} matches '
+            f'**{comps_sorted[2][0][5:]}** in {comps_sorted[2][1][0]} matches '
             f'with **{round((comps_sorted[2][1][1]/comps_sorted[2][1][0])*100)}**% top 4 ratio\n'
-            f'**{comps_sorted[3][1][2]} {comps_sorted[3][0][5:]}** in {comps_sorted[3][1][0]} matches '
+            f'**{comps_sorted[3][0][5:]}** in {comps_sorted[3][1][0]} matches '
             f'with **{round((comps_sorted[3][1][1]/comps_sorted[3][1][0])*100)}**% top 4 ratio\n'
-            f'**{comps_sorted[4][1][2]} {comps_sorted[4][0][5:]}** in {comps_sorted[4][1][0]} matches '
+            f'**{comps_sorted[4][0][5:]}** in {comps_sorted[4][1][0]} matches '
             f'with **{round((comps_sorted[4][1][1]/comps_sorted[4][1][0])*100)}**% top 4 ratio\n'
         )
 

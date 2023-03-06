@@ -1,142 +1,137 @@
 {
-    "Set7_Cannoneer": [
+    "Set8_Civilian": [
         0,
         0,
         "<:trait_icon_5_cannoneer:988065530990690344>"
     ],
-    "Set7_Tempest": [
+    "Set8_Admin": [
         0,
         0,
         "<:trait_icon_7_tempest:987743018259980298>"
     ],
-    "Set7_Assassin": [
+    "Set8_AnimaSquad": [
         0,
         0,
         "<:trait_icon_6_assassin:988064755942055946>"
     ],
-    "Set7_Dragon": [
+    "Set8_SpaceCorps": [
         0,
         0,
         "<:trait_icon_7_dragon:987742999637291029>"
     ],
-    "Set7_Ragewing": [
+    "Set8_Brawler": [
         0,
         0,
         "<:trait_icon_7_ragewing:987743010420838460>"
     ],
-    "Set7_Guild": [
+    "Set8_ExoPrime": [
         0,
         0,
         "<:trait_icon_7_guild:987743005756768266>"
     ],
-    "Set7_Cavalier": [
+    "Set8_Threat": [
         0,
         0,
         "<:trait_icon_5_cavalry:988064754734092338>"
     ],
-    "Set7_Mage": [
+    "Set8_Mascot": [
         0,
         0,
         "<:trait_icon_2_mage:988064751735173171>"
     ],
-    "Set7_Evoker": [
+    "Set8_Forecaster": [
         0,
         0,
         "<:trait_icon_7_evoker:987743003626074223>"
     ],
-    "Set7_Shimmerscale": [
+    "Set8_Ace": [
         0,
         0,
         "<:trait_icon_7_shimmerscale:987743013163921448>"
     ],
-    "Set7_Dragonmancer": [
+    "Set8_Duelist": [
         0,
         0,
         "<:trait_icon_7_dragonmancer:987743001809915978>"
     ],
-    "Set7_Scalescorn": [
+    "Set8_OxForce": [
         0,
         0,
         "<:trait_icon_7_dragonbane:987743001084301322>"
     ],
-    "Set7_Whispers": [
+    "Set8_Arsenal": [
         0,
         0,
         "<:trait_icon_7_whispers:987743022009692160>"
     ],
-    "Set7_Revel": [
+    "Set8_Aegis": [
         0,
         0,
         "<:trait_icon_7_revel:987743011817541722>"
     ],
-    "Set7_Mirage": [
+    "Set8_UndergroundThe": [
         0,
         0,
         "<:trait_icon_7_mirage:987743009250619452>"
     ],
-    "Set7_Trainer": [
+    "Set8_StarGuardian": [
         0,
         0,
         "<:trait_icon_7_trainers:987743019493113896>"
     ],
-    "Set7_Mystic": [
+    "Set8_Prankster": [
         0,
         0,
         "<:trait_icon_2_mystic:988064753446432839>"
     ],
-    "Set7_Legend": [
+    "Set8_Heart": [
         0,
         0,
         "<:trait_icon_7_legend:987743007749062707>"
     ],
-    "Set7_Guardian": [
+    "Set8_Corrupted": [
         0,
         0,
         "<:trait_icon_7_guardian:987743004704014376>"
     ],
-    "Set7_Starcaller": [
+    "Set8_Supers": [
         0,
         0,
         "<:trait_icon_7_starcaller:987743015630151710>"
     ],
-    "Set7_SpellThief": [
+    "Set8_Renegade": [
         0,
         0,
         "<:trait_icon_7_spellthief:987743014518653020>"
     ],
-    "Set7_Warrior": [
+    "Set8_Channeler": [
         0,
         0,
         "<:trait_icon_7_warrior:987743020415877211>"
     ],
-    "Set7_Jade": [
+    "Set8_Recon": [
         0,
         0,
         "<:trait_icon_7_jade:987743006826315788>"
     ],
-    "Set7_Astral": [
+    "Set8_Deadeye": [
         0,
         0,
         "<:trait_icon_7_astral:987742997426876466>"
     ],
-    "Set7_Swiftshot": [
+    "Set8_GenAE": [
         0,
         0,
         "<:trait_icon_7_swiftshot:987743016968147006>"
     ],
-    "Set7_Bard": [
+    "Set8_Hacker": [
         0,
         0,
         "<:trait_icon_7_bard:987742998160867409>"
     ],
-    "Set7_Bruiser": [
+    "Set8_Defender": [
         0,
         0,
-        "<:trait_icon_6_bruiser:988064756709605377>"
-    ],
-    "Set7_Shapeshifter": [
-        0,
-        0,
-        "<:trait_icon_shapeshifter:988064972988891186>"
+        "<:trait_icon_7_bard:987742998160867409>"
     ]
 }

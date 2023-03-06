@@ -15,4 +15,4 @@ for filename in os.listdir("COGS"):  # iterate over files in 'COGS' dictionary
         client.load_extension(f"COGS.{filename[:-3]}")  # load cogs into bot
         print("Cog Loaded!")
 
-client.run(os.getenv('TOKEN'))  # actually run the bot and pass the secret TOKEN
+client.run(os.getenv('ALPHATOKEN'))  # actually run the bot and pass the secret TOKEN
