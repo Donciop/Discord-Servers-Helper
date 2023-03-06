@@ -6,7 +6,6 @@ services:
     volumes:
       - .:/discord_bot
     environment:
-      - ALPHATOKEN=OTMwOTcyOTkwMzExNjQxMTM4.GzgR2z.k4PjnW7Cr5eObKeglrKcTMpblXxUtUl1y0mSaU
       - APIKEYTFT=RGAPI-f6cda379-2634-455d-804f-de7c412cd1e8
       - MONGOURL=mongodb+srv://DzonyMongony:DzonyBravo12345@creamdatabase.pju7t.mongodb.net/Discord_Bot_Database
       - PYTHONUNBUFFERED=1
