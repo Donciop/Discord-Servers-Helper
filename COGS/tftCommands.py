@@ -12,15 +12,17 @@ class TftCommands(commands.Cog):
         self.client = client
 
     @nextcord.slash_command(name='tft_rank', guild_ids=[218510314835148802])
-    async def tft_rank(self, interaction: nextcord.Interaction,
-                       nickname: str = nextcord.SlashOption(required=True)):
+    async def tft_rank(self,
+                       interaction: nextcord.Interaction,
+                       nickname: str = nextcord.SlashOption(required=True),
+                       tag: str = nextcord.SlashOption(required=False)):
         """
         Command used to check player's rank in Teamfight Tactics
 
             Args:
                 interaction: (nextcord.Interaction): Context of the command
                 nickname (str): Nickname of the player we want to find
-
+                tag (str): Tag of the player we want to find
             Returns:
                 None
         """
@@ -29,22 +31,18 @@ class TftCommands(commands.Cog):
             return
 
         # access data about specific player from RIOT API for later operations
-        summoner = await TftUtilityFunctions.get_summoner(interaction, nickname)
-        summoner_stats = await TftUtilityFunctions.get_tft_ranked_stats(interaction, summoner)
+        summoner_stats = await TftUtilityFunctions.get_tft_ranked_stats(nickname, tag)
 
-        if not summoner or not summoner_stats:
+        if not summoner_stats:
+            await interaction.response.send_message(f'Can\'t find **{nickname}** on EUNE server', ephemeral=True)
             return
-
-        # nickname operations to access lolchess.gg
-        title_nickname = nickname.lower()
-        title_nickname = title_nickname.replace(" ", "")
 
         # styling Discord embed message
         embed = nextcord.Embed(
             color=0x11f80d,  # color of the embed message
             title=f"🎲 Teamfight Tactics {nickname}'s Rank 🎲",  # title of the embed message
             description="Click the title for advanced information",  # description of the embed message
-            url=f"https://lolchess.gg/profile/eune/{title_nickname}"
+            url=f'https://lolchess.gg/profile/eune/{nickname.replace(" ", "").lower()}'
         )
 
         # creating file to send image along the embed message
@@ -76,30 +74,30 @@ class TftCommands(commands.Cog):
 
     @nextcord.slash_command(name='tft_add_player', guild_ids=[218510314835148802])
     async def tft_add_player(self, interaction: nextcord.Interaction,
-                             nickname: str = nextcord.SlashOption(required=True)):
+                             nickname: str = nextcord.SlashOption(required=True),
+                             tag: str = nextcord.SlashOption(required=False)):
         """
         Command used to add players to the database for further usage in leaderboard
 
             Args:
                 interaction: (nextcord.Interaction): Context of the command
                 nickname (str): Nickname of the player we want to add
-
+                tag (str): Tag of the player we want to add
             Returns:
                 None
         """
         channel_check = await SettingsCommands.channel_check(interaction)
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set8_tft_players',
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set9_tft_players',
                                                              interaction=interaction)
         if collection is None or not channel_check:
             return
 
-        summoner = await TftUtilityFunctions.get_summoner(interaction, nickname)
-        summoner_stats = await TftUtilityFunctions.get_tft_ranked_stats(interaction, summoner)
-        if not summoner or not summoner_stats:
+        summoner_stats = await TftUtilityFunctions.get_tft_ranked_stats(nickname, tag)
+        if not summoner_stats:
             return
 
         # searching database to check if player's already exists
-        tft_player = collection.find_one({'nickname': nickname})
+        tft_player = collection.find_one({'nickname': nickname, 'tag': tag})
         if tft_player:
             await interaction.response.send_message(f'Player **{nickname}** already exists in database',
                                                     ephemeral=True)
@@ -120,6 +118,7 @@ class TftCommands(commands.Cog):
         query = {
             '_id': summoner_stats['summonerId'],
             'nickname': nickname,
+            'tag': tag,
             'matchesPlayed': (summoner_stats['wins'] + summoner_stats['losses']),
             'rank': summoner_stats['rank'],
             'tier': summoner_stats['tier'],
@@ -134,28 +133,30 @@ class TftCommands(commands.Cog):
     @nextcord.slash_command(name='tft_remove_player', guild_ids=[218510314835148802])
     @application_checks.has_permissions(manage_channels=True)
     async def tft_remove_player(self, interaction: nextcord.Interaction,
-                                nickname: str = nextcord.SlashOption(required=True)):
+                                nickname: str = nextcord.SlashOption(required=True),
+                                tag: str = nextcord.SlashOption(required=False)):
         """
         Command used to remove players from database on demand
 
             Args:
                 interaction: (nextcord.Interaction): Context of the command
-                nickname (str): Nickname of the player we want to add'
+                nickname (str): Nickname of the player we want to add
+                tag (str): Tag of the player we want to remove
 
             Returns:
                 None
         """
         await interaction.response.defer()
         channel_check = await SettingsCommands.channel_check(interaction)
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set8_tft_players')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set9_tft_players')
 
         if not channel_check or collection is None:
             return
 
         # searching database to check if player's already exists
-        tft_player = collection.find_one({'nickname': nickname})
+        tft_player = collection.find_one({'nickname': nickname, 'tag': tag})
         if tft_player:
-            collection.delete_one({'nickname': nickname})  # removing player from database
+            collection.delete_one({'nickname': nickname, 'tag': tag})  # removing player from database
             await interaction.response.send_message(f'You have deleted **{nickname}** from database', ephemeral=True)
         else:
             await interaction.response.send_message(f'Can\'t find **{nickname}** in the database', ephemeral=True)
@@ -175,7 +176,7 @@ class TftCommands(commands.Cog):
         await interaction.response.defer()
 
         channel_check = await SettingsCommands.channel_check(interaction)
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set8_tft_players')
+        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'set9_tft_players')
 
         if not channel_check or collection is None:
             return
@@ -190,8 +191,7 @@ class TftCommands(commands.Cog):
 
         for old_tft_player in collection.find():
 
-            summoner = await TftUtilityFunctions.get_summoner(interaction, old_tft_player['nickname'])
-            summoner_stats = await TftUtilityFunctions.get_tft_ranked_stats(interaction, summoner)
+            summoner_stats = await TftUtilityFunctions.get_tft_ranked_stats(old_tft_player['nickname'], old_tft_player['tag'])
 
             tier_emoji = await RiotUtilityFunctions.get_rank_emoji(summoner_stats)
             ranking = await RiotUtilityFunctions.get_local_rank(summoner_stats)
@@ -200,7 +200,7 @@ class TftCommands(commands.Cog):
                 progress_emoji = '<:green_arrow:988447460630335549>'
             elif old_tft_player['ranking'] > ranking:
                 progress_emoji = '🔻'
-            collection.update_one({"nickname": old_tft_player['nickname']},
+            collection.update_one({"nickname": old_tft_player['nickname'], "tag": old_tft_player['tag']},
                                   {"$set": {"matchesPlayed": (summoner_stats['wins']+summoner_stats['losses']),
                                             "rank": summoner_stats['rank'],
                                             "tier": summoner_stats['tier'],
@@ -251,7 +251,8 @@ class TftCommands(commands.Cog):
                                                                           'ranked': 'Ranked',
                                                                           'double_up': 'Double Up',
                                                                           'hyper_roll': 'Hyper Roll'}
-                                                                      )):
+                                                                      ),
+                        tag: str = nextcord.SlashOption(required=False)):
         """
         Command used to gather and analyze data from Teamfight Tactics match history
 
@@ -260,7 +261,7 @@ class TftCommands(commands.Cog):
                 nickname (str): Nickname of the player we want to find
                 number_of_matches (int): Number of matches we want to search for
                 search_queue_type (str): Type of queue that You want to collect stats for
-
+                tag (str): Tag of the player we want to find (optional) (default 'EUNE')
             Returns:
                 None
         """
@@ -274,15 +275,11 @@ class TftCommands(commands.Cog):
         if number_of_matches >= 500 or number_of_matches <= 0:
             await interaction.send(f"Wrong number of matches! Try between 0 - 500")
             return
-
-        summoner = await TftUtilityFunctions.get_summoner(interaction, nickname)
-        if not summoner:
-            return
-
-        summoner_stats = await TftUtilityFunctions.get_tft_ranked_stats(interaction, summoner)
+        summoner = await TftUtilityFunctions.get_summoner(nickname, tag)
+        summoner_stats = await TftUtilityFunctions.get_tft_ranked_stats(nickname, tag)
 
         # access player's match history in form of list of match ids
-        match_list = watcher.match.by_puuid("europe", summoner['puuid'], number_of_matches)
+        match_list = await TftUtilityFunctions.get_tft_match_list(nickname, tag)
 
         # check if player played at least 1 match
         if not match_list:
@@ -293,14 +290,16 @@ class TftCommands(commands.Cog):
         # Getting data from .json files that are used to store information about Teamfight Tactics characters etc.
         all_stats = await SettingsCommands.load_json_dict("JSON_DATA/allStats.json")
         queue_ids = await SettingsCommands.load_json_dict("JSON_DATA/queue_numbers_dict.json")
-        comps = await SettingsCommands.load_json_dict("JSON_DATA/TFT_SET_7/SET_7_TRAITS.json")
-        champs = await SettingsCommands.load_json_dict("JSON_DATA/TFT_SET_7/SET_7_CHAMPIONS.json")
+        comps = await SettingsCommands.load_json_dict("JSON_DATA/TFT_SET_13/SET_13_TRAITS.json")
+        champs = await SettingsCommands.load_json_dict("JSON_DATA/TFT_SET_13/SET_13_CHAMPIONS.json")
 
         # iterate over every match in match list
         for match in match_list:
+            print(match)
 
             # getting match details for further analysis
             match_detail = watcher.match.by_id("europe", match)
+            print(match_detail)
 
             if search_queue_type != 'all':
                 if match_detail['info']['queue_id'] != queue_ids[search_queue_type]:
@@ -373,13 +372,13 @@ class TftCommands(commands.Cog):
             key=lambda x: x[1],
             reverse=True
         )
+        print(comps_sorted)
         champs_sorted = sorted(
             champs.items(),
             key=lambda x: x[1],
             reverse=True
         )
         print(comps_sorted)
-        print(champs_sorted)
         title_nickname = nickname.lower()
         title_nickname = title_nickname.replace(" ", "")
 
