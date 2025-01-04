@@ -1,6 +1,10 @@
 from nextcord.ext import commands
 from COGS.settingsCommands import DatabaseManager
+from logger import get_logger
 import nextcord
+
+# Setting up logging
+bot_logger = get_logger()
 
 
 class Events(commands.Cog):
@@ -10,33 +14,37 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         """ Event handler that is called when bot is turned on. """
-        print("Bot is ready")
+        bot_logger.info("Bot is ready")
+        await self.client.sync_all_application_commands()
+
+        bot_logger.info("Application commands synced")
         await self.client.change_presence(  # change the bot description on Discord member list
             activity=nextcord.Activity(
                 type=nextcord.ActivityType.watching,  # get the "is watching ..." format
                 name="small servers *help"
             )
         )
-
-    @commands.Cog.listener()
-    async def on_message(self, message: nextcord.Message):
-        """
-        Event handler that is called when someone sends a message on discord channel
-
-            Args:
-                message (nextcord.Message): Discord Message
-
-            Returns:
-                None
-        """
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'new_members')
-        if collection is None:
-            return
-        collection.update_one(
-            {"_id": message.author.id},
-            {"$inc": {"messages_sent": 1}}
-        )
-        await self.client.process_commands(message)
+        bot_logger.info("Activity changed")
+    #
+    # @commands.Cog.listener()
+    # async def on_message(self, message: nextcord.Message):
+    #     """
+    #     Event handler that is called when someone sends a message on discord channel
+    #
+    #         Args:
+    #             message (nextcord.Message): Discord Message
+    #
+    #         Returns:
+    #             None
+    #     """
+    #     collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'new_members')
+    #     if collection is None:
+    #         return
+    #     collection.update_one(
+    #         {"_id": message.author.id},
+    #         {"$inc": {"messages_sent": 1}}
+    #     )
+    #     await self.client.process_commands(message)
 
     @commands.Cog.listener()
     async def on_member_join(self, member: nextcord.Member):
