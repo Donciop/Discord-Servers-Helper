@@ -1,3 +1,4 @@
+import datetime
 import nextcord
 from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
@@ -28,17 +29,15 @@ class AdministratorCommands(commands.Cog):
             Returns:
                 None
         """
-        channel_check = await SettingsCommands.channel_check(interaction)
-        if not channel_check:
-            return
 
-        attachment_saved_amount = attachment_failed_to_save_amount = counter = 0
+        attachment_saved_amount = counter = attachment_failed_to_save_amount = 0
 
         if not channel:
             channel = interaction.channel
 
         await interaction.response.defer()
-        filepath = 'E:\\Discord Attachments'
+        filepath = 'D:\\Discord Attachments'
+        await FilesManager.create_attachments_dir(filepath=filepath, channel=channel)
         async for msg in channel.history(limit=None):  # iterate over every message in channel's history
             if not msg.attachments:
                 continue
@@ -58,7 +57,7 @@ class AdministratorCommands(commands.Cog):
     async def change_nicknames(self, interaction: nextcord.Interaction):
         await interaction.response.defer()
 
-        lines = open('JSON_DATA/MONTHLY_THEME/JAPAN/names.txt', encoding="utf8").read().splitlines()
+        lines = open('JSON_DATA/MONTHLY_THEME/CURRENT/current.txt', encoding="utf8").read().splitlines()
         lines_list = []
         for member in interaction.guild.members:
             print(member)
@@ -75,7 +74,6 @@ class AdministratorCommands(commands.Cog):
                     lines_list.append(new_nickname)
                     try:
                         await member.edit(nick=new_nickname)
-                        print("something")
                         break
                     except:
                         break
