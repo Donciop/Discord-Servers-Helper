@@ -1,9 +1,10 @@
 import nextcord
+import requests
 from nextcord import Interaction
 from nextcord.ext import commands, application_checks
 from nextcord.abc import GuildChannel
 from pymongo import MongoClient
-from riotwatcher import TftWatcher, LolWatcher
+from riotwatcher import LolWatcher
 import requests.exceptions
 import requests
 import typing
@@ -95,30 +96,37 @@ class LolUtilityFunctions(commands.Cog):
 class TftUtilityFunctions(commands.Cog):
 
     @staticmethod
-    async def get_summoner(interaction: nextcord.Interaction, nickname: str):
+    async def get_summoner(nickname: str, tag: str):
         """
         Utility method for accessing player's account data from Riot API
 
             Args:
-                interaction (nextcord.Interaction): Context of the command
                 nickname (str): Nickname of the plyer
-
+                tag (str): Tag of the player
             Returns:
                 summoner (dict): Dictionary containing information about specific player
         """
-        watcher = TftWatcher(os.getenv('APIKEYTFT'))
+        if tag is None:
+            tag = 'EUNE'
+
         try:
-            summoner = watcher.summoner.by_name('eun1', nickname)
-            return summoner
+            response = requests.get(f'https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{nickname}/{tag}?api_key={os.getenv("APIKEYTFT")}').json()
+            return response
         except requests.exceptions.HTTPError:
-            await interaction.response.send_message(f'Can\'t find **{nickname}** on EUNE server', ephemeral=True)
             return None
 
     @staticmethod
-    async def get_tft_ranked_stats(interaction: nextcord.Interaction, summoner):
-        watcher = TftWatcher(os.getenv('APIKEYTFT'))
+    async def get_tft_ranked_stats(nickname: str, tag: str):
 
-        summoner_stats = watcher.league.by_summoner('eun1', summoner['id'])
+        summoner = await TftUtilityFunctions.get_summoner(nickname, tag)
+        if not summoner:
+            return None
+
+        response = requests.get(f'https://eun1.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{summoner["puuid"]}?api_key={os.getenv("APIKEYTFT")}').json()
+        if not response:
+            return None
+
+        summoner_stats = requests.get(f'https://eun1.api.riotgames.com/tft/league/v1/entries/by-summoner/{response["id"]}?api_key={os.getenv("APIKEYTFT")}').json()
         if not summoner_stats:
             return None
 
@@ -129,6 +137,23 @@ class TftUtilityFunctions(commands.Cog):
 
         if not queue_found:
             return None
+
+    @staticmethod
+    async def get_tft_match_list(nickname: str, tag: str):
+
+        summoner = await TftUtilityFunctions.get_summoner(nickname, tag)
+        if not summoner:
+            return None
+
+        match_list = requests.get(f'https://europe.api.riotgames.com/tft/match/v1/matches/by-puuid/{summoner["puuid"]}/ids?start=0&count=20&api_key={os.getenv("APIKEYTFT")}').json()
+        if not match_list:
+            return None
+
+        return match_list
+
+    @staticmethod
+    async def get_tft_match_details(interaction: nextcord.Interaction, match_id: str):
+        return 0
 
 
 class RiotUtilityFunctions(commands.Cog):
@@ -229,6 +254,7 @@ class FilesManager(commands.Cog):
             os.makedirs(f'{filepath}\\{channel.name}\\Uncategorized')
             os.makedirs(f'{filepath}\\{channel.name}\\Images')
             return
+        return
 
     @staticmethod
     async def save_attachment(*, filepath: str, counter: int,
@@ -246,11 +272,10 @@ class FilesManager(commands.Cog):
                 bool: True if successful, False otherwise
         """
 
-        filetypes = {'Images': ['jpg', 'jpeg', 'png'],
+        filetypes = {'Images': ['jpg', 'jpeg', 'png', 'webp'],
                      'Video': ['mp4', 'mov', 'webm'],
                      'Text': ['pdf', 'txt']}
         created_time = msg.created_at.strftime("%Y_%m_%d_%H_%M_%S")
-        await FilesManager.create_attachments_dir(filepath=filepath, channel=channel)
         filetype_found = False
         for i_counter, attachment in enumerate(msg.attachments):
             for category, category_filetypes in filetypes.items():
@@ -305,22 +330,23 @@ class SettingsCommands(commands.Cog):
             Returns:
                 bool: True if user can send messages in this channel, False otherwise
         """
-        channel_check = False
-        collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'guild_bot_channels')
-        if collection is None:
-            return
-        check = collection.find_one({'_id': interaction.guild_id})
-        if not check:
-            channel_check = True
-        else:
-            for bot_channel in check['bot_channels']:
-                if interaction.channel_id == int(bot_channel):
-                    channel_check = True
-
-        # sends specific message if command is used in forbidden channel
-        if not channel_check:
-            await interaction.response.send_message(f'Please, use bot commands in bot channel to prevent spam',
-                                                    ephemeral=True)
+        channel_check = True
+        # NEED TO SETUP A DATABASE TO WORK PROPERLY
+        # collection = await DatabaseManager.get_db_collection('Discord_Bot_Database', 'guild_bot_channels')
+        # if collection is None:
+        #     return
+        # check = collection.find_one({'_id': interaction.guild_id})
+        # if not check:
+        #     channel_check = True
+        # else:
+        #     for bot_channel in check['bot_channels']:
+        #         if interaction.channel_id == int(bot_channel):
+        #             channel_check = True
+        #
+        # # sends specific message if command is used in forbidden channel
+        # if not channel_check:
+        #     await interaction.response.send_message(f'Please, use bot commands in bot channel to prevent spam',
+        #                                             ephemeral=True)
         return channel_check
 
     @staticmethod
