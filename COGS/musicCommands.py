@@ -4,7 +4,7 @@ from nextcord.ext import commands
 from nextcord import Interaction
 import asyncio
 import logging
-
+from async_timeout import timeout
 # Setting up logger for the MusicCommands Cog
 logger = logging.getLogger("BotLogger")
 
@@ -18,26 +18,50 @@ class MusicCommands(commands.Cog):
     @nextcord.slash_command(name="play", description="Play a song from YouTube")
     async def play(self, interaction: Interaction, url: str):
         """Play a song from YouTube."""
+        await interaction.response.defer()
+        logger.info(f"{interaction.user} is trying to play a song...")
         if not interaction.user.voice:
             await interaction.response.send_message("You need to join a voice channel first!", ephemeral=True)
             logger.warning(f"{interaction.user} tried to play a song but is not in a voice channel.")
             return
+        
+        logger.info(f"Bot is trying to connect to a voice channel...")
+        try:
+            channel = interaction.user.voice.channel
+        except Exception as ex:
+            logger.error(f"There was an error while getting channel: Error message: {str(ex)}")
+            return
 
-        channel = interaction.user.voice.channel
         if not interaction.guild.voice_client:
-            await channel.connect()
+            logger.info(f"Bot was not connected to voice channel and now is attempting a connection...")
+            try:
+                async with timeout(10):
+                    await channel.connect()
+            except asyncio.TimeoutError:    
+                logger.error(f"Connection to the voice channel timed out")
+                await interaction.response.send_message(f"Timeout")    
+            except Exception as ex:
+                logger.error(f"There was an error connecting to voice channel: {str(e)}")
+                await interaction.response.send_message(f"Failed: {str(e)}")
             logger.info(f"Bot connected to voice channel: {channel.name}.")
 
+        logger.info(f"ytdlp settings start")
         ydl_options = {
             'format': 'bestaudio/best',
             'quiet': True,
             'noplaylist': True,
             'cookies': self.cookies_file
         }
-
+        logger.info(f"ytdlp settings final")
         # Send an initial response to indicate the bot is working
-        await interaction.response.send_message("Processing your request...")
-
+        #logger.info(f"Bot is trying to send a processing request message...")
+        #try:
+        #    await interaction.response.send_message("Processing your request...")
+        #except Exception as ex:
+        #    logger.error(f"There was an error while sending response message. Error message: {str(ex)} ")
+        #    return
+        
+        logger.info(f"Bot is trying to stream URL from YouTube...")
         try:
             # Use yt-dlp to get the stream URL
             with youtube_dl.YoutubeDL(ydl_options) as ydl:
